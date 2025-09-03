@@ -4,10 +4,27 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Algorithm Benchmarks</title>
-    <script src="https://cdn.jsdelivr.net/npm/plotly.js@3.1.0/dist/plotly.min.js" integrity="sha256-Ei4740bWZhaUTQuD6q9yQlgVCMPBz6CZWhevDYPv93A=" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/semantic-ui@2.5.0/dist/semantic.min.js" integrity="sha256-fN8vcX2ULyTDspVTHEteK8hd3rQAb5thNiwakjAW75Q=" crossorigin="anonymous"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/semantic-ui@2.5.0/dist/semantic.min.css" integrity="sha256-cDGQ39yChhpN5vzgHbjIdGEtQ5kXE9tttCsI7VR9TuY=" crossorigin="anonymous" />
+    <script
+      src="https://cdn.jsdelivr.net/npm/plotly.js@3.1.0/dist/plotly.min.js"
+      integrity="sha256-Ei4740bWZhaUTQuD6q9yQlgVCMPBz6CZWhevDYPv93A="
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"
+      integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/semantic-ui@2.5.0/dist/semantic.min.js"
+      integrity="sha256-fN8vcX2ULyTDspVTHEteK8hd3rQAb5thNiwakjAW75Q="
+      crossorigin="anonymous"
+    ></script>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/semantic-ui@2.5.0/dist/semantic.min.css"
+      integrity="sha256-cDGQ39yChhpN5vzgHbjIdGEtQ5kXE9tttCsI7VR9TuY="
+      crossorigin="anonymous"
+    />
     <style>
       .ui.container {
         padding: 2em;
@@ -209,7 +226,18 @@
         }
         // Build traces for each scenario
         const traces = [];
-        const colorScheme = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"];
+        const colorScheme = [
+          "#1f77b4",
+          "#ff7f0e",
+          "#2ca02c",
+          "#d62728",
+          "#9467bd",
+          "#8c564b",
+          "#e377c2",
+          "#7f7f7f",
+          "#bcbd22",
+          "#17becf",
+        ];
         resultsArr.forEach((result, idx) => {
           const xs = [],
             ys = [],
@@ -241,7 +269,11 @@
         const plotLayout = {
           title: keysArr.join(" + "),
           xaxis: { title: "Input size (n)", type: xType, color: isDark ? "#eee" : undefined },
-          yaxis: { title: use_c ? "Time / Complexity" : "Time per repeat (ns)", type: yType, color: isDark ? "#eee" : undefined },
+          yaxis: {
+            title: use_c ? "Time / Complexity" : "Time per repeat (ns)",
+            type: yType,
+            color: isDark ? "#eee" : undefined,
+          },
           legend: { orientation: "h", font: { color: isDark ? "#eee" : undefined } },
           margin: { t: 40 },
           paper_bgcolor: isDark ? "#181818" : undefined,
@@ -251,7 +283,16 @@
         Plotly.newPlot(plotDiv, traces, plotLayout, { responsive: true });
         // Details
         detailsDiv.style.display = "";
-        detailsDiv.innerHTML = resultsArr.map((result, idx) => `<b>Algorithm:</b> ${keysArr[idx]}<br><b>Type:</b> ${result.type}<br><b>Complexity:</b> ${result.complexity}`).join("<hr>");
+        detailsDiv.innerHTML = resultsArr
+          .map((result, idx) => {
+            return [
+              `<b>Algorithm:</b> ${keysArr[idx]}`,
+              `<b>Type:</b> ${result.type}`,
+              `<b>Complexity:</b> ${result.complexity}`,
+              `<b>Max Constant:</b> ${typeof result.max_c === "number" ? result.max_c.toFixed(3) : result.max_c}`,
+            ].join("<br>");
+          })
+          .join("<hr>");
       }
 
       // Replot on toggle change
