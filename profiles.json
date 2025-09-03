@@ -1,0 +1,10 @@
+{
+  "g++11.O0.static": {
+    "name": "g++11.O0.static",
+    "build_command": "g++ -o {output} {source_path} -O0 -static -std=c++11 {defines}"
+  },
+  "g++11.O2.static": {
+    "name": "g++11.O2.static",
+    "build_command": "g++ -o {output} {source_path} -O2 -static -std=c++11 {defines}"
+  }
+}

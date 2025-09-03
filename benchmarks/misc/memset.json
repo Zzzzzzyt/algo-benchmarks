@@ -1,0 +1,34 @@
+{
+  "tests": {
+    "misc.memset.cold_0": {
+      "type": "simple",
+      "complexity": "O(n)",
+      "practical_lower_bound": 16,
+      "practical_upper_bound": 10000000,
+      "template": ["n", "micro_repeats", "time_ns"]
+    },
+    "misc.memset.hot_0": {
+      "type": "simple",
+      "complexity": "O(n)",
+      "practical_lower_bound": 16,
+      "practical_upper_bound": 10000000,
+      "template": ["n", "micro_repeats", "time_ns"]
+    }
+  },
+  "sources": [
+    {
+      "path": "memset.cpp",
+      "input": {
+        "type": "generator",
+        "params": {
+          "type": "exp",
+          "complexity": "O(n)",
+          "lower_bound": 8,
+          "upper_bound": 24,
+          "estimated_constant": 0.1
+        }
+      },
+      "repeats": 20
+    }
+  ]
+}
