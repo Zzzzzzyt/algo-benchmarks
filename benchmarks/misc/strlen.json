@@ -1,16 +1,9 @@
 {
   "tests": {
-    "misc.strlen.cold_0": {
+    "misc.strlen": {
       "type": "simple",
       "complexity": "O(n)",
-      "practical_lower_bound": 0,
-      "practical_upper_bound": 10000000,
-      "template": ["n", "micro_repeats", "time_ns"]
-    },
-    "misc.strlen.hot_0": {
-      "type": "simple",
-      "complexity": "O(n)",
-      "practical_lower_bound": 0,
+      "practical_lower_bound": 100,
       "practical_upper_bound": 10000000,
       "template": ["n", "micro_repeats", "time_ns"]
     }
@@ -21,11 +14,11 @@
       "input": {
         "type": "generator",
         "params": {
-          "type": "exp",
-          "complexity": "O(n)",
-          "lower_bound": 8,
-          "upper_bound": 24,
-          "estimated_constant": 0.1
+          "lower_bound": 100,
+          "upper_bound": 20000000,
+          "micro_repeats": true,
+          "estimated_constant": 0.1,
+          "complexity": "O(n)"
         }
       },
       "repeats": 20

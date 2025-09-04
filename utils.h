@@ -1,5 +1,4 @@
 #include <ctime>
-#include <stdio.h>
 
 unsigned long long get_cpu_time() {
     timespec ts;
@@ -165,3 +164,7 @@ inline BENCHMARK_ALWAYS_INLINE void DoNotOptimize(Tp &&value) {
 #ifndef BENCHMARK_MICRO_REPEATS
 #define BENCHMARK_MICRO_REPEATS 1
 #endif
+
+#include <random>
+
+std::minstd_rand rng(time(NULL));

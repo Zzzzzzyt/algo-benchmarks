@@ -1,31 +1,35 @@
 {
   "tests": {
-    "misc.memset.cold_0": {
+    "misc.sort.sorted": {
       "type": "simple",
       "complexity": "O(n)",
       "practical_lower_bound": 100,
       "practical_upper_bound": 10000000,
-      "template": ["n", "micro_repeats", "time_ns"]
+      "template": ["n", "time_ns"]
     },
-    "misc.memset.hot_0": {
+    "misc.sort.reversed": {
       "type": "simple",
       "complexity": "O(n)",
       "practical_lower_bound": 100,
       "practical_upper_bound": 10000000,
-      "template": ["n", "micro_repeats", "time_ns"]
+      "template": ["n", "time_ns"]
+    },
+    "misc.sort.random": {
+      "type": "simple",
+      "complexity": "O(nlogn)",
+      "practical_lower_bound": 100,
+      "practical_upper_bound": 10000000,
+      "template": ["n", "time_ns"]
     }
   },
   "sources": [
     {
-      "path": "memset.cpp",
+      "path": "sort.cpp",
       "input": {
         "type": "generator",
         "params": {
           "lower_bound": 100,
-          "upper_bound": 20000000,
-          "micro_repeats": true,
-          "estimated_constant": 0.1,
-          "complexity": "O(n)"
+          "upper_bound": 10000000
         }
       },
       "repeats": 20

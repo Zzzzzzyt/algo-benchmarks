@@ -31,10 +31,9 @@
         padding-top: 4em;
       }
       #tree {
-        max-width: 400px;
+        max-width: 600px;
         border: 1px solid #ccc;
         border-radius: 8px;
-        background: #fafafa;
         padding: 1em;
       }
       #tree .ui.accordion {
@@ -51,6 +50,11 @@
         width: 100%;
         min-height: 400px;
       }
+      @media (max-width: 1000px) {
+        .ui.container {
+          width: 100%;
+        }
+      }
       @media (max-width: 600px) {
         #tree {
           max-width: 100%;
@@ -59,80 +63,57 @@
           min-height: 300px;
         }
       }
-      @media (prefers-color-scheme: dark) {
-        body {
-          background: #111;
-          color: #eee;
-        }
-        #tree {
-          background: #111;
-          border-color: #444;
-          color: #eee;
-        }
-        .ui.container,
-        .ui.segment {
-          background: #111 !important;
-          color: #eee !important;
-        }
-        .ui.toggle.checkbox label,
-        .ui.checkbox label {
-          color: #eee !important;
-        }
-        .ui.accordion .title {
-          color: #eee !important;
-        }
-        .ui.accordion .content {
-          color: #eee !important;
-        }
-        .ui.toggle.checkbox .box:before,
-        .ui.toggle.checkbox label:before {
-          background: rgba(255, 255, 255, 0.1) !important;
-        }
-      }
-
-      body .ui.segment,
-      body .ui.dropdown,
-      body .header,
-      body .content,
-      body .ui.icon:not(.button):not(.item):not(.message),
-      body .ui.breadcrumb .icon.divider,
-      body .ui.input,
-      body input,
-      body .ui.form .inline.fields > label,
-      body .ui.input textarea,
-      body .ui.form textarea,
-      body .ui.radio.checkbox input ~ label,
-      body .ui.toggle.checkbox input ~ label,
-      body .ui.toggle.checkbox input:checked ~ label,
-      body .ui.toggle.checkbox input:focus:checked ~ label,
-      body .ui.checkbox label:hover,
-      body .ui.checkbox + label:hover,
-      body .ui.checkbox label,
-      body .ui.checkbox + label,
-      body .ui.form .field > label,
-      body .ui.selection.visible.dropdown > .text:not(.default),
-      body .ui.menu .ui.dropdown .menu > .active.item,
-      body .ui.menu .ui.dropdown .menu > .item:hover,
-      body .ui.accordion,
-      body .ui.accordion > .title,
-      body .ui.accordion > .content,
-      body table,
-      body tr,
-      body td,
-      body th {
-        background: inherit !important;
-        color: inherit !important;
+      .ui.styled.accordion {
+        width: initial;
       }
     </style>
   </head>
   <body>
     <div class="ui container">
-      <h2 class="ui header">Algorithm Benchmarks</h2>
+      <div class="ui grid" style="margin-bottom: 1em">
+        <div class="eight wide column">
+          <h2 class="ui header">Algorithm Benchmarks</h2>
+        </div>
+        <div class="eight wide column" style="text-align: right">
+          <a href="https://github.com/Zzzzzzyt/algo-benchmarks" class="ui button" target="_blank">
+            <i class="github icon"></i>View on GitHub
+          </a>
+        </div>
+      </div>
+
+      <!-- profile and Results Selection -->
+      <div class="ui form" style="margin-bottom: 2em">
+        <div class="field">
+          <label for="profileDropdown">Select profile</label>
+          <div class="ui selection dropdown" id="profileDropdown">
+            <input type="hidden" name="profile" />
+            <i class="dropdown icon"></i>
+            <div class="default text">Loading profiles...</div>
+            <div class="menu" id="profileMenu"></div>
+          </div>
+        </div>
+      </div>
+      <div id="profileInfo" style="margin-bottom: 2em; display: none">
+        <div class="ui styled accordion">
+          <div class="title">
+            <i class="dropdown icon"></i>
+            Profile Information
+          </div>
+          <div class="content">
+            <div id="profileDetails"></div>
+          </div>
+        </div>
+      </div>
+
       <div class="ui grid stackable">
         <div class="four wide column">
           <div class="ui toggle checkbox" style="margin-bottom: 1em">
-            <input type="checkbox" id="constantToggle" checked />
-            <label for="constantToggle">Show constant</label>
+            <input type="checkbox" id="constantToggle" onchange="refresh()" checked />
+            <label for="constantToggle">Use constant</label>
+          </div>
+          <div class="ui toggle checkbox" style="margin-bottom: 1em">
+            <input type="checkbox" id="linesToggle" onchange="refresh()" />
+            <label for="linesToggle">Show lines</label>
           </div>
           <div id="tree" class="ui fluid"></div>
         </div>
@@ -143,13 +124,118 @@
       </div>
     </div>
     <script>
-      // Load results.json
-      fetch("results.json")
+      let currentResultsData = null;
+      let currentProfileData = null;
+
+      // Load results index and populate dropdown
+      fetch("results_index.json")
         .then((r) => r.json())
-        .then((data) => {
-          window._resultsData = data;
-          buildTree(data);
+        .then((index) => {
+          populateProfileDropdown(index);
+          if (index.length > 0) {
+            loadProfile(index[0].path, index[0].name);
+          }
+        })
+        .catch(() => {
+          // Fallback to direct results.json if index doesn't exist
+          fetch("results.json")
+            .then((r) => r.json())
+            .then((data) => {
+              currentResultsData = data;
+              window._resultsData = data;
+              buildTree(data["results"] || data);
+            });
         });
+
+      function populateProfileDropdown(profiles) {
+        const menu = document.getElementById("profileMenu");
+        const dropdown = document.getElementById("profileDropdown");
+
+        menu.innerHTML = "";
+        profiles.forEach((profile) => {
+          const item = document.createElement("div");
+          item.className = "item";
+          item.setAttribute("data-value", profile.path);
+          item.textContent = profile.name;
+          menu.appendChild(item);
+        });
+
+        // Initialize Semantic UI dropdown
+        $(dropdown).dropdown({
+          onChange: function (value, text) {
+            loadProfile(value, text);
+          },
+        });
+
+        // Update default text
+        dropdown.querySelector(".default.text").textContent = "Select an profile";
+      }
+
+      function loadProfile(path, name) {
+        fetch(path)
+          .then((r) => r.json())
+          .then((data) => {
+            currentResultsData = data.results || data;
+            currentProfileData = data;
+            window._resultsData = currentResultsData;
+
+            buildTree(currentResultsData);
+            displayProfileInfo(data);
+
+            // Set dropdown text
+            const dropdown = document.getElementById("profileDropdown");
+            dropdown.querySelector(".text").textContent = name;
+
+            refresh();
+          })
+          .catch((err) => {
+            console.error("Failed to load profile:", err);
+          });
+      }
+
+      function displayProfileInfo(data) {
+        const infoDiv = document.getElementById("profileInfo");
+        const detailsDiv = document.getElementById("profileDetails");
+
+        infoDiv.style.display = "block";
+
+        let html = "";
+
+        if (data.profile) {
+          html += `<div class="ui segment">
+              <h5 class="ui header">Profile</h5>
+              <p><strong>Name:</strong> ${data.profile.name || "N/A"}</p>
+              <p><strong>Build Command:</strong> <code>${data.profile.build_command || "N/A"}</code></p>
+            </div>`;
+        }
+
+        if (data.environment) {
+          const env = data.environment;
+          html += `<div class="ui segment">
+              <h5 class="ui header">System Information</h5>
+              <p><strong>Platform:</strong> ${env.platform || "N/A"}</p>
+              <p><strong>Python Version:</strong> ${env.python_version || "N/A"}</p>
+            </div>`;
+
+          if (env.cpuinfo) {
+            html += `<div class="ui segment">
+                  <h5 class="ui header">CPU Information</h5>
+                 <pre style="text-wrap:auto;">${env.cpuinfo}</pre>
+                </div>`;
+          }
+          if (env["g++"]) {
+            html += `<div class="ui segment">
+                  <h5 class="ui header">Compiler</h5>
+                  <pre style="text-wrap:auto;">${env["g++"]}</pre>
+                </div>`;
+          }
+        }
+
+        detailsDiv.innerHTML = html;
+
+        // Initialize accordion
+        $(infoDiv).find(".ui.accordion").accordion();
+      }
 
       function buildTree(results) {
         // Build a nested Map tree from keys
@@ -173,7 +259,7 @@
           for (const [k, v] of node.entries()) {
             if (typeof v === "string") {
               // Leaf node as checkbox, with line break
-              html += `<div class="ui checkbox scenario-checkbox"><input type="checkbox" data-key="${v}"><label>${k}</label></div>`;
+              html += `<div class="ui checkbox scenario-checkbox"><input type="checkbox" id="data-key-${v}"><label for="data-key-${v}">${k}</label></div>`;
             } else {
               html += `<div class="ui accordion"><div class="title"><i class="dropdown icon"></i>${k}</div>`;
               html += '<div class="content">' + renderTree(v) + "</div></div>";
@@ -188,16 +274,11 @@
         $("#tree>.accordion").accordion({ exclusive: false, duration: 100 });
 
         // Checkbox handler for overlaying scenarios
-        const checkboxes = tree.querySelectorAll("input[type=checkbox][data-key]");
+        const checkboxes = tree.querySelectorAll("input[type=checkbox]");
         checkboxes.forEach((cb) => {
           cb.onchange = () => {
             // Get all checked scenarios
-            const checked = Array.from(tree.querySelectorAll("input[type=checkbox][data-key]:checked"));
-            const selectedKeys = checked.map((c) => c.dataset.key);
-            showOverlayPlot(
-              selectedKeys.map((k) => results[k]),
-              selectedKeys
-            );
+            refresh();
           };
         });
       }
@@ -212,9 +293,10 @@
           return;
         }
         // Determine axis scale: log-linear if all are log-linear, else log-log
-        let xType = "log",
-          yType = "log";
+        let xType = "log";
+        let yType = "log";
 
+        const showLines = document.getElementById("linesToggle")?.checked;
         const logRegex = /O\((log n|logn)\)/i;
         if (use_c) {
           yType = "linear";
@@ -258,27 +340,23 @@
             x: xs,
             y: ys,
             error_y: { type: "data", array: errors, visible: true },
-            mode: "markers",
+            mode: showLines ? "lines+markers" : "markers",
             type: "scatter",
             name: keysArr[idx],
             marker: { color: colorScheme[idx % colorScheme.length] },
           });
         });
+
         // Plotly layout dark mode detection
-        const isDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
         const plotLayout = {
           title: keysArr.join(" + "),
-          xaxis: { title: "Input size (n)", type: xType, color: isDark ? "#eee" : undefined },
+          xaxis: { title: "Input size (n)", type: xType },
           yaxis: {
             title: use_c ? "Time / Complexity" : "Time per repeat (ns)",
             type: yType,
-            color: isDark ? "#eee" : undefined,
           },
-          legend: { orientation: "h", font: { color: isDark ? "#eee" : undefined } },
+          legend: { orientation: "h" },
           margin: { t: 40 },
-          paper_bgcolor: isDark ? "#181818" : undefined,
-          plot_bgcolor: isDark ? "#111" : undefined,
-          font: { color: isDark ? "#eee" : undefined },
         };
         Plotly.newPlot(plotDiv, traces, plotLayout, { responsive: true });
         // Details
@@ -295,24 +373,17 @@
           .join("<hr>");
       }
 
-      // Replot on toggle change
-      document.addEventListener("DOMContentLoaded", function () {
-        const toggle = document.getElementById("constantToggle");
-        if (toggle) {
-          toggle.addEventListener("change", function () {
-            // Find checked scenarios and replot
-            const tree = document.getElementById("tree");
-            const checked = Array.from(tree.querySelectorAll("input[type=checkbox][data-key]:checked"));
-            const selectedKeys = checked.map((c) => c.dataset.key);
-            if (window._resultsData) {
-              showOverlayPlot(
-                selectedKeys.map((k) => window._resultsData[k]),
-                selectedKeys
-              );
-            }
-          });
+      function refresh() {
+        const tree = document.getElementById("tree");
+        const checked = Array.from(tree.querySelectorAll("input[type=checkbox]:checked"));
+        const selectedKeys = checked.map((c) => c.id.replace("data-key-", ""));
+        if (window._resultsData) {
+          showOverlayPlot(
+            selectedKeys.map((k) => window._resultsData[k]),
+            selectedKeys
+          );
         }
-      });
+      }
     </script>
   </body>
 </html>
