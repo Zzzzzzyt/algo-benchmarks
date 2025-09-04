@@ -260,7 +260,9 @@ def run(profile, source_path, output_file, rerun=False):
                         source_config_hash = hash_obj(source)
                         source["tests"] = list(cfg["tests"].keys())
                         path = source["path"] = os.path.join(dirpath, source["path"])
-                        source_hash.append([hashlib.md5(open(path, "rb").read()).hexdigest(), source_config_hash])
+                        source_hash.append(
+                            [hashlib.md5(open(path, "rb").read().replace(b"\r", b"")).hexdigest(), source_config_hash]
+                        )
                         source_files.append(path)
                         sources.append(source)
 
@@ -326,7 +328,7 @@ def run(profile, source_path, output_file, rerun=False):
     json.dump(
         {"profile": profile, "environment": collect_environment(), "results": sorted_results},
         open(output_file, "w"),
-        indent=2,
+        separators=(",", ":"),
     )
 
 
