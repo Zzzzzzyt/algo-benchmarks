@@ -1,7 +1,6 @@
 #include "utils.h"
 #include <algorithm>
 #include <stdio.h>
-#include <string.h>
 
 int a[BENCHMARK_N];
 
@@ -16,7 +15,7 @@ int main(int argc, char *argv[]) {
 
     DoNotOptimize(a[0]);
 
-    printf("misc.sort.sorted:\t%d %llu\n", BENCHMARK_N, et1 - st1);
+    printf("misc.sort.int_sorted:\t%d %llu\n", BENCHMARK_N, et1 - st1);
 
     for (int i = 0; i < BENCHMARK_N; i++) {
         a[i] = BENCHMARK_N - i;
@@ -28,7 +27,7 @@ int main(int argc, char *argv[]) {
 
     DoNotOptimize(a[0]);
 
-    printf("misc.sort.reversed:\t%d %llu\n", BENCHMARK_N, et2 - st2);
+    printf("misc.sort.int_reversed:\t%d %llu\n", BENCHMARK_N, et2 - st2);
 
     for (int i = 0; i < BENCHMARK_N; i++) {
         a[i] = rng();
@@ -40,7 +39,7 @@ int main(int argc, char *argv[]) {
 
     DoNotOptimize(a[0]);
 
-    printf("misc.sort.random:\t%d %llu\n", BENCHMARK_N, et3 - st3);
+    printf("misc.sort.int_random:\t%d %llu\n", BENCHMARK_N, et3 - st3);
 
     return 0;
 }

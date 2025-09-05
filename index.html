@@ -216,7 +216,12 @@
               <p><strong>Platform:</strong> ${env.platform || "N/A"}</p>
               <p><strong>Python Version:</strong> ${env.python_version || "N/A"}</p>
             </div>`;
-
+          if (env.meminfo) {
+            html += `<div class="ui segment">
+                  <h5 class="ui header">Memory Information</h5>
+                 <pre style="text-wrap:auto;">${env.meminfo}</pre>
+                </div>`;
+          }
           if (env.cpuinfo) {
             html += `<div class="ui segment">
                   <h5 class="ui header">CPU Information</h5>
@@ -368,6 +373,7 @@
               `<b>Type:</b> ${result.type}`,
               `<b>Complexity:</b> ${result.complexity}`,
               `<b>Max Constant:</b> ${typeof result.max_c === "number" ? result.max_c.toFixed(3) : result.max_c}`,
+              `<b>Description:</b><br>${result.description_en || "N/A"}`,
             ].join("<br>");
           })
           .join("<hr>");

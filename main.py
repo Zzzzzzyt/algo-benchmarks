@@ -167,7 +167,7 @@ def process_simple_test(test):
     return test
 
 
-def run_source(source, profile):
+def run_source(source, profile, dry_run=False):
     global tests
 
     ret = {}
@@ -178,22 +178,44 @@ def run_source(source, profile):
         raise ValueError(f"Unsupported input type: {source['input']['type']}")
 
     for input_data in inputs:
-        output_path = compile_source(source, profile, input_data.get("defs", {}))
-        for repeat in range(source["repeats"]):
-            p = subprocess.run(
-                output_path,
-                check=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-            )
-            print(colorize(p.stdout.decode().strip(), "gray"))
-            if p.returncode != 0:
-                print(colorize(f"Error running {source['path']} with input {input_data}:", "red"))
-                print(colorize(p.stderr.decode().strip(), "red"))
-                exit(1)
-            for line in p.stdout.decode().splitlines():
-                testid = line.split(":")[0].strip()
-                if testid in tests:
+        if dry_run:
+            print(colorize(f"Would compile {source['path']} with profile {profile['name']}", "gray"))
+            print(colorize("with defs: " + str(input_data.get("defs", {})), "gray"))
+            for testid in source["tests"]:
+                for repeat in range(source["repeats"]):
+                    test = tests[testid]
+                    if testid not in ret:
+                        ret[testid] = test.copy()
+                        ret[testid]["data"] = []
+                    if test["type"] == "simple":
+                        fake_input = f"{testid}:\t"
+                        for field in test["template"]:
+                            if field == "n":
+                                fake_input += f"{input_data['defs']['BENCHMARK_N']} "
+                            else:
+                                fake_input += f"{random.randint(1000, 100000)} "
+                        handle_simple_test(
+                            ret,
+                            testid,
+                            fake_input,
+                            input_data,
+                        )
+        else:
+            output_path = compile_source(source, profile, input_data.get("defs", {}))
+            for repeat in range(source["repeats"]):
+                p = subprocess.run(
+                    output_path,
+                    check=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                )
+                print(colorize(p.stdout.decode().strip(), "gray"))
+                if p.returncode != 0:
+                    print(colorize(f"Error running {source['path']} with input {input_data}:", "red"))
+                    print(colorize(p.stderr.decode().strip(), "red"))
+                    exit(1)
+                for line in p.stdout.decode().splitlines():
+                    testid = line.split(":")[0].strip()
                     test = tests[testid]
                     if testid not in ret:
                         ret[testid] = test.copy()
@@ -211,16 +233,23 @@ def collect_environment():
     try:
         # Collect g++ version info
         gpp_proc = subprocess.run(["g++", "-v"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        env["g++"] = gpp_proc.stderr if gpp_proc.stderr else gpp_proc.stdout
+        env["g++"] = gpp_proc.stdout.strip() if gpp_proc.stdout else gpp_proc.stderr.strip()
     except Exception as e:
         env["g++"] = f"Error: {e}"
 
     try:
         # Collect lscpu info
         lscpu_proc = subprocess.run(["lscpu"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        env["cpuinfo"] = lscpu_proc.stdout if lscpu_proc.stdout else lscpu_proc.stderr
+        env["cpuinfo"] = lscpu_proc.stdout.strip() if lscpu_proc.stdout else lscpu_proc.stderr.strip()
     except Exception as e:
         env["cpuinfo"] = f"Error: {e}"
+
+    try:
+        # Collect free memory info
+        free_proc = subprocess.run(["free", "-h"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        env["meminfo"] = free_proc.stdout.strip() if free_proc.stdout else free_proc.stderr.strip()
+    except Exception as e:
+        env["meminfo"] = f"Error: {e}"
 
     return env
 
@@ -229,7 +258,7 @@ def hash_obj(obj):
     return hashlib.md5(json.dumps(obj, sort_keys=True).encode()).hexdigest()
 
 
-def run(profile, source_path, output_file, rerun=False):
+def run(profile, source_path, output_file, rerun=False, dry_run=False):
     print(colorize(f"Using profile: {profile['name']}", "green"))
     random.seed(42)
 
@@ -307,7 +336,7 @@ def run(profile, source_path, output_file, rerun=False):
             print(colorize(f"Skipping {source['path']} as it is unused.", "yellow"))
             continue
         try:
-            results.update(run_source(source, profile))
+            results.update(run_source(source, profile, dry_run))
         except KeyboardInterrupt:
             print(colorize("Interrupted by user.", "red"))
             break
@@ -346,6 +375,7 @@ def main():
     )
     parser.add_argument("--output", type=str, help="File to save output", required=False, default="results.json")
     parser.add_argument("--rerun", action="store_true", help="Do not skip existing tests", required=False, default=False)
+    parser.add_argument("--dry-run", action="store_true", help="Doesn't actually run tests", required=False, default=False)
     args = parser.parse_args()
 
     if args.profile:
@@ -358,7 +388,7 @@ def main():
     else:
         profile = next(iter(profiles.values()))
 
-    run(profile, args.source, args.output, args.rerun)
+    run(profile, args.source, args.output, args.rerun, args.dry_run)
 
 
 if __name__ == "__main__":

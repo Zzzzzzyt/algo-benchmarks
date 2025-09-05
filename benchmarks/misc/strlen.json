@@ -5,7 +5,9 @@
       "complexity": "O(n)",
       "practical_lower_bound": 100,
       "practical_upper_bound": 10000000,
-      "template": ["n", "micro_repeats", "time_ns"]
+      "template": ["n", "micro_repeats", "time_ns"],
+      "description_en": "strlen(const char* str) on a single string.\nN is the length of the input string.",
+      "description_zh": "对单个字符串调用 strlen(const char* str) 函数。\nN 是输入字符串的长度。"
     }
   },
   "sources": [

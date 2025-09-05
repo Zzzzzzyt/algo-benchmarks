@@ -1,25 +1,31 @@
 {
   "tests": {
-    "misc.sort.sorted": {
+    "misc.sort.int_sorted": {
       "type": "simple",
       "complexity": "O(n)",
       "practical_lower_bound": 100,
       "practical_upper_bound": 10000000,
-      "template": ["n", "time_ns"]
+      "template": ["n", "time_ns"],
+      "description_en": "Sorting an already sorted int array with std::sort.\nN is the number of elements in the array.",
+      "description_zh": "使用std::sort对一个已经排序的int数组进行排序。\nN 是数组中的元素数量。"
     },
-    "misc.sort.reversed": {
+    "misc.sort.int_reversed": {
       "type": "simple",
       "complexity": "O(n)",
       "practical_lower_bound": 100,
       "practical_upper_bound": 10000000,
-      "template": ["n", "time_ns"]
+      "template": ["n", "time_ns"],
+      "description_en": "Sorting a reversely sorted int array with std::sort.\nN is the number of elements in the array.",
+      "description_zh": "使用std::sort对一个逆序排序的int数组进行排序。\nN 是数组中的元素数量。"
     },
-    "misc.sort.random": {
+    "misc.sort.int_random": {
       "type": "simple",
       "complexity": "O(nlogn)",
       "practical_lower_bound": 100,
       "practical_upper_bound": 10000000,
-      "template": ["n", "time_ns"]
+      "template": ["n", "time_ns"],
+      "description_en": "Sorting a randomly ordered int array with std::sort.\nN is the number of elements in the array.",
+      "description_zh": "使用std::sort对一个随机int数组进行排序。\nN 是数组中的元素数量。"
     }
   },
   "sources": [
