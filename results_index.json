@@ -1,1 +1,11 @@
-[{"name": "aliyun g++11.O0.static", "path": "results/aliyun_g++11.O0.static.json"}, {"name": "aliyun g++11.O2.static", "path": "results/aliyun_g++11.O2.static.json"}, {"name": "aliyun g++11.Ofast.native.static", "path": "results/aliyun_g++11.Ofast.native.static.json"}, {"name": "wsl g++11.O0.static", "path": "results/wsl_g++11.O0.static.json"}, {"name": "wsl g++11.O2.static", "path": "results/wsl_g++11.O2.static.json"}, {"name": "wsl g++11.Ofast.native.static", "path": "results/wsl_g++11.Ofast.native.static.json"}]
+[
+  { "name": "aliyun g++11.O0.static", "path": "results/aliyun_g++11.O0.static.json" },
+  { "name": "aliyun g++11.O2.static", "path": "results/aliyun_g++11.O2.static.json" },
+  { "name": "aliyun g++11.Ofast.native.static", "path": "results/aliyun_g++11.Ofast.native.static.json" },
+  { "name": "wsl g++11.O0.static", "path": "results/wsl_g++11.O0.static.json" },
+  { "name": "wsl g++11.O2.static", "path": "results/wsl_g++11.O2.static.json" },
+  { "name": "wsl g++11.Ofast.native.static", "path": "results/wsl_g++11.Ofast.native.static.json" },
+  { "name": "wsl2 g++11.O0.static", "path": "results/wsl2_g++11.O0.static.json" },
+  { "name": "wsl2 g++11.O2.static", "path": "results/wsl2_g++11.O2.static.json" },
+  { "name": "wsl2 g++11.Ofast.native.static", "path": "results/wsl2_g++11.Ofast.native.static.json" }
+]
