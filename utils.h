@@ -184,11 +184,12 @@ inline BENCHMARK_ALWAYS_INLINE ull get_monotonic_time() {
 #include <x86intrin.h>
 #endif
 
-#define MEMORY_BARRIER asm volatile("" : : : "memory")
+#define BENCHMARK_COMPILER_BARRIER asm volatile("" : : : "memory")
 
 inline BENCHMARK_ALWAYS_INLINE ull get_tsc() {
-    MEMORY_BARRIER;
-    return __rdtsc();
+    BENCHMARK_COMPILER_BARRIER;
+    unsigned int aux;
+    return __rdtscp(&aux);
 }
 
 #ifndef BENCHMARK_TSC_FREQ
