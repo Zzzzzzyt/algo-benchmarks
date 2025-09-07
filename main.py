@@ -7,6 +7,7 @@ import subprocess
 import shutil
 import random
 import hashlib
+import time
 
 
 def colorize(text, color):
@@ -80,7 +81,12 @@ def generator(
     return ret
 
 
-def compile_source(source, profile, defs={}):
+def compile_source(source, profile, defs={}, high_priority=False):
+    if high_priority:
+        defs["BENCHMARK_HIGH_PRIORITY"] = 1
+
+    defs["BENCHMARK_TSC_FREQ"] = f"{tsc_freq:.10f}"
+
     if os.path.exists("temp"):
         shutil.rmtree("temp")
     os.makedirs("temp", exist_ok=True)
@@ -98,9 +104,9 @@ def compile_source(source, profile, defs={}):
     compile_command = profile["build_command"].format(
         output=output_path, source_path=source_path, defines=" ".join(f"-D{key}={value}" for key, value in defs.items())
     )
-    print(colorize(compile_command, "yellow"))
+    print(colorize(compile_command, "magenta"))
 
-    os.system(compile_command)
+    subprocess.run(compile_command, shell=True, check=True)
     if not os.path.exists(output_path):
         print(colorize(f"Compilation failed with command: {compile_command}", "red"))
         exit(1)
@@ -108,9 +114,7 @@ def compile_source(source, profile, defs={}):
     return output_path
 
 
-def handle_simple_test(ret, testid, line, input_data):
-    global tests
-    test = tests[testid]
+def handle_simple_test(ret, testid, test, line, input_data):
     values = line.split(":")[1].strip().split(" ")
     cur = {}
     for i, value in enumerate(values):
@@ -118,7 +122,7 @@ def handle_simple_test(ret, testid, line, input_data):
     ret[testid]["data"].append(cur)
 
 
-def process_simple_test(test):
+def process_simple_test(testid, test):
     stat = {}
     for sample in test["data"]:
         n = sample["n"]
@@ -133,10 +137,19 @@ def process_simple_test(test):
 
     # Compute statistics for each key
     stats = []
-    for n, values in stat.items():
-        values.sort()
+    for n, raw_values in stat.items():
+        raw_values.sort()
+        values = raw_values.copy()
         remove_outliers = max(1, len(values) // 10)
-        values = values[remove_outliers:-remove_outliers]
+        for _ in range(remove_outliers):
+            if values[-1] > 1.3 * values[-2]:
+                values.pop()
+            else:
+                break
+        if len(values) != len(raw_values):
+            print(colorize(f"Removed {len(raw_values)-len(values)} outliers from {testid} n={n}", "yellow"))
+            print(colorize(f"  Raw values: {raw_values}", "yellow"))
+            print(colorize(f"  Filtered values: {values}", "yellow"))
 
         mean = sum(values) / len(values)
         stddev = math.sqrt(sum((x - mean) ** 2 for x in values) / len(values))
@@ -151,6 +164,9 @@ def process_simple_test(test):
                 "stddev": stddev,
                 "mean_c": mean_c,
                 "stddev_c": stddev_c,
+                "min_c": min(values) / complexity_fn(n),
+                "max_c": max(values) / complexity_fn(n),
+                "samples": len(values),
                 "min": min(values),
                 "max": max(values),
             }
@@ -167,7 +183,7 @@ def process_simple_test(test):
     return test
 
 
-def run_source(source, profile, dry_run=False):
+def run_source(source, profile, dry_run=False, high_priority=False):
     global tests
 
     ret = {}
@@ -179,8 +195,8 @@ def run_source(source, profile, dry_run=False):
 
     for input_data in inputs:
         if dry_run:
-            print(colorize(f"Would compile {source['path']} with profile {profile['name']}", "gray"))
-            print(colorize("with defs: " + str(input_data.get("defs", {})), "gray"))
+            print(colorize(f"Would compile {source['path']} with profile {profile['name']}", "magenta"))
+            print(colorize("with defs: " + str(input_data.get("defs", {})), "magenta"))
             for testid in source["tests"]:
                 for repeat in range(source["repeats"]):
                     test = tests[testid]
@@ -197,11 +213,12 @@ def run_source(source, profile, dry_run=False):
                         handle_simple_test(
                             ret,
                             testid,
+                            test,
                             fake_input,
                             input_data,
                         )
         else:
-            output_path = compile_source(source, profile, input_data.get("defs", {}))
+            output_path = compile_source(source, profile, input_data.get("defs", {}), high_priority=high_priority)
             for repeat in range(source["repeats"]):
                 p = subprocess.run(
                     output_path,
@@ -221,14 +238,18 @@ def run_source(source, profile, dry_run=False):
                         ret[testid] = test.copy()
                         ret[testid]["data"] = []
                     if test["type"] == "simple":
-                        handle_simple_test(ret, testid, line, input_data)
+                        handle_simple_test(ret, testid, test, line, input_data)
     return ret
 
 
 def collect_environment():
+    global tsc_freq
+
     env = {
         "platform": sys.platform,
         "python_version": sys.version,
+        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime()),
+        "tsc_freq": tsc_freq,
     }
     try:
         # Collect g++ version info
@@ -258,7 +279,14 @@ def hash_obj(obj):
     return hashlib.md5(json.dumps(obj, sort_keys=True).encode()).hexdigest()
 
 
-def run(profile, source_path, output_file, rerun=False, dry_run=False):
+def run(profile, source_path, output_file, rerun=False, dry_run=False, high_priority=False):
+    global tsc_freq
+    if os.path.exists("tsc_freq.txt"):
+        tsc_freq = float(open("tsc_freq.txt", "r").read().strip())
+    else:
+        print(colorize("TSC frequency file tsc_freq.txt not found. Please run calibrate_tsc script.", "red"))
+        exit(1)
+
     print(colorize(f"Using profile: {profile['name']}", "green"))
     random.seed(42)
 
@@ -269,45 +297,48 @@ def run(profile, source_path, output_file, rerun=False, dry_run=False):
     tests = {}
     results = {}
     sources = []
+
+    def proc_cfg(dirpath, cfg_path):
+        nonlocal sources
+        global tests
+
+        cfg = json.load(open(cfg_path, "r", encoding="utf-8"))
+        source_hash = []
+        source_files = []
+        for source in cfg["sources"]:
+            source_config_hash = hash_obj(source)
+            source["tests"] = list(cfg["tests"].keys())
+            path = source["path"] = os.path.join(dirpath, source["path"])
+            source_hash.append(
+                [
+                    hashlib.md5(open(path, "rb").read().replace(b"\r", b"")).hexdigest(),
+                    source_config_hash,
+                ]
+            )
+            source_files.append(path)
+            sources.append(source)
+
+        source_hash = hash_obj(source_hash)
+
+        for testid, test in cfg["tests"].items():
+            test["source_files"] = source_files
+            test["source_hash"] = source_hash
+            test["test_hash"] = hash_obj(test)
+            tests[testid] = test
+
     if os.path.isfile(source_path):
-        cfg = json.load(open(source_path, "r"))
-        if "tests" in cfg:
-            tests.update(cfg["tests"])
-        if "sources" in cfg:
-            for source in cfg["sources"]:
-                source["path"] = os.path.join(os.path.dirname(source_path), source["path"])
-                sources.append(source)
+        proc_cfg(os.path.dirname(source_path), source_path)
     else:
         for dirpath, dirnames, filenames in os.walk(source_path):
             for file in filenames:
                 if file.endswith(".json"):
-                    cfg = json.load(open(os.path.join(dirpath, file), "r"))
-
-                    source_hash = []
-                    source_files = []
-                    for source in cfg["sources"]:
-                        source_config_hash = hash_obj(source)
-                        source["tests"] = list(cfg["tests"].keys())
-                        path = source["path"] = os.path.join(dirpath, source["path"])
-                        source_hash.append(
-                            [hashlib.md5(open(path, "rb").read().replace(b"\r", b"")).hexdigest(), source_config_hash]
-                        )
-                        source_files.append(path)
-                        sources.append(source)
-
-                    source_hash = hash_obj(source_hash)
-
-                    for testid, test in cfg["tests"].items():
-                        test["source_files"] = source_files
-                        test["source_hash"] = source_hash
-                        test["test_hash"] = hash_obj(test)
-                        tests[testid] = test
+                    proc_cfg(dirpath, os.path.join(dirpath, file))
 
     print(colorize(f"Found {len(sources)} source files and {len(tests)} tests.", "green"))
 
     old_results = {}
     if (not rerun) and os.path.exists(output_file):
-        old_results_file = json.load(open(output_file, "r"))
+        old_results_file = json.load(open(output_file, "r", encoding="utf-8"))
         old_profile_hash = hash_obj(old_results_file.get("profile", {}))
         current_profile_hash = hash_obj(profile)
         if old_profile_hash == current_profile_hash:
@@ -331,40 +362,39 @@ def run(profile, source_path, output_file, rerun=False, dry_run=False):
         if flag:
             unused_sources.add(source["path"])
 
-    for source in sources:
-        if source["path"] in unused_sources:
-            print(colorize(f"Skipping {source['path']} as it is unused.", "yellow"))
-            continue
-        try:
-            results.update(run_source(source, profile, dry_run))
-        except KeyboardInterrupt:
-            print(colorize("Interrupted by user.", "red"))
-            break
+    try:
+        for source in sources:
+            if source["path"] in unused_sources:
+                print(colorize(f"Skipping {source['path']} as it is unused.", "yellow"))
+                continue
+            results.update(run_source(source, profile, dry_run, high_priority))
 
-    for k in sorted(tests.keys()):
-        if k in results:
-            v = results[k]
-            if v["type"] == "simple":
-                results[k] = process_simple_test(v)
-        else:
-            if k in old_results:
-                results[k] = old_results[k]
+        for k in sorted(tests.keys()):
+            if k in results:
+                v = results[k]
+                if v["type"] == "simple":
+                    results[k] = process_simple_test(k, v)
             else:
-                print(colorize(f"Warning: Test {k} defined but not run.", "red"))
+                if k in old_results:
+                    results[k] = old_results[k]
+                else:
+                    print(colorize(f"Warning: Test {k} defined but not run.", "red"))
+    except KeyboardInterrupt:
+        print(colorize("Interrupted by user.", "red"))
 
     sorted_results = {k: results[k] for k in sorted(results.keys())}
 
     json.dump(
         {"profile": profile, "environment": collect_environment(), "results": sorted_results},
-        open(output_file, "w"),
+        open(output_file, "w", encoding="utf-8"),
         separators=(",", ":"),
     )
 
 
 def main():
-    profiles = json.load(open("profiles.json", "r"))
+    profiles = json.load(open("profiles.json", "r", encoding="utf-8"))
 
-    parser = argparse.ArgumentParser(description="Run C++ benchmarks.")
+    parser = argparse.ArgumentParser(description="Run algorithm benchmarks.")
     parser.add_argument("--profile", type=str, help="Profile to use for the benchmark", required=False)
     parser.add_argument(
         "--source",
@@ -376,6 +406,13 @@ def main():
     parser.add_argument("--output", type=str, help="File to save output", required=False, default="results.json")
     parser.add_argument("--rerun", action="store_true", help="Do not skip existing tests", required=False, default=False)
     parser.add_argument("--dry-run", action="store_true", help="Doesn't actually run tests", required=False, default=False)
+    parser.add_argument(
+        "--high-priority",
+        action="store_true",
+        help="Run benchmarks with high priority (may require admin/root)",
+        required=False,
+        default=False,
+    )
     args = parser.parse_args()
 
     if args.profile:
@@ -388,7 +425,7 @@ def main():
     else:
         profile = next(iter(profiles.values()))
 
-    run(profile, args.source, args.output, args.rerun, args.dry_run)
+    run(profile, args.source, args.output, args.rerun, args.dry_run, args.high_priority)
 
 
 if __name__ == "__main__":

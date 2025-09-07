@@ -2,3 +2,6 @@ temp/
 
 **/__pycache__/
 *.pyc
+
+**/*.exe
+calibrate_tsc

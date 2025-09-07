@@ -115,6 +115,10 @@
             <input type="checkbox" id="linesToggle" onchange="refresh()" />
             <label for="linesToggle">Show lines</label>
           </div>
+          <div class="ui toggle checkbox" style="margin-bottom: 1em">
+            <input type="checkbox" id="minmaxToggle" onchange="refresh()" checked />
+            <label for="minmaxToggle">Show min/max</label>
+          </div>
           <div id="tree" class="ui fluid"></div>
         </div>
         <div class="twelve wide column">
@@ -302,6 +306,7 @@
         let yType = "log";
 
         const showLines = document.getElementById("linesToggle")?.checked;
+        const showMinMax = document.getElementById("minmaxToggle")?.checked;
         const logRegex = /O\((log n|logn)\)/i;
         if (use_c) {
           yType = "linear";
@@ -328,15 +333,26 @@
         resultsArr.forEach((result, idx) => {
           const xs = [],
             ys = [],
-            errors = [];
+            errors = [],
+            errors2 = [];
           result.stats.forEach((d) => {
             const n = Number(d.n);
             if (use_c) {
               ys.push(d.mean_c);
-              errors.push(d.stddev_c);
+              if (showMinMax) {
+                errors2.push(d.mean_c - d.min_c);
+                errors.push(d.max_c - d.mean_c);
+              } else {
+                errors.push(d.stddev_c);
+              }
             } else {
               ys.push(d.mean);
-              errors.push(d.stddev);
+              if (showMinMax) {
+                errors2.push(d.mean - d.min);
+                errors.push(d.max - d.mean);
+              } else {
+                errors.push(d.stddev);
+              }
             }
             xs.push(n);
           });
@@ -344,7 +360,9 @@
           traces.push({
             x: xs,
             y: ys,
-            error_y: { type: "data", array: errors, visible: true },
+            error_y: showMinMax
+              ? { type: "data", symmetric: false, array: errors, arrayminus: errors2, visible: true }
+              : { type: "data", array: errors, visible: true },
             mode: showLines ? "lines+markers" : "markers",
             type: "scatter",
             name: keysArr[idx],

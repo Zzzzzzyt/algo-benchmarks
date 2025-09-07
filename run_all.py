@@ -10,6 +10,13 @@ parser.add_argument(
 parser.add_argument("--device", type=str, help="Device name to use in results", required=False, default=None)
 parser.add_argument("--rerun", action="store_true", help="Do not skip existing tests", required=False, default=False)
 parser.add_argument("--dry-run", action="store_true", help="Doesn't actually run tests", required=False, default=False)
+parser.add_argument(
+    "--high-priority",
+    action="store_true",
+    help="Run benchmarks with high priority (may require admin/root)",
+    required=False,
+    default=False,
+)
 args = parser.parse_args()
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -31,7 +38,7 @@ else:
 for profile_name, profile in profiles.items():
     output_file = f"results/{device}_{profile_name.replace(' ', '_')}.json"
     print()
-    run(profile, "benchmarks", output_file, args.rerun, args.dry_run)
+    run(profile, "benchmarks", output_file, args.rerun, args.dry_run, args.high_priority)
     results_index = [entry for entry in results_index if entry["path"] != output_file]
     results_index.append({"name": f"{device} {profile_name}", "path": output_file})
 

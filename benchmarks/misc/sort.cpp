@@ -9,9 +9,9 @@ int main(int argc, char *argv[]) {
         a[i] = i;
     }
 
-    unsigned long long st1 = get_cpu_time();
+    ull st1 = get_cpu_time();
     std::sort(a, a + BENCHMARK_N);
-    unsigned long long et1 = get_cpu_time();
+    ull et1 = get_cpu_time();
 
     DoNotOptimize(a[0]);
 
@@ -21,9 +21,9 @@ int main(int argc, char *argv[]) {
         a[i] = BENCHMARK_N - i;
     }
 
-    unsigned long long st2 = get_cpu_time();
+    ull st2 = get_cpu_time();
     std::sort(a, a + BENCHMARK_N);
-    unsigned long long et2 = get_cpu_time();
+    ull et2 = get_cpu_time();
 
     DoNotOptimize(a[0]);
 
@@ -33,9 +33,9 @@ int main(int argc, char *argv[]) {
         a[i] = rng();
     }
 
-    unsigned long long st3 = get_cpu_time();
+    ull st3 = get_cpu_time();
     std::sort(a, a + BENCHMARK_N);
-    unsigned long long et3 = get_cpu_time();
+    ull et3 = get_cpu_time();
 
     DoNotOptimize(a[0]);
 

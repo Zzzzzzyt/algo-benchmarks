@@ -10,9 +10,9 @@ int main(int argc, char *argv[]) {
         a[i] = std::make_pair(rng(), rng());
     }
 
-    unsigned long long st = get_cpu_time();
+    ull st = get_cpu_time();
     std::sort(a, a + BENCHMARK_N);
-    unsigned long long et = get_cpu_time();
+    ull et = get_cpu_time();
 
     DoNotOptimize(a[0]);
 

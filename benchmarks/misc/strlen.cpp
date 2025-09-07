@@ -10,12 +10,12 @@ int main(int argc, char *argv[]) {
         a[i] = 'a';
     a[BENCHMARK_N - 1] = '\0';
 
-    unsigned long long st1 = get_cpu_time();
+    ull st1 = get_cpu_time();
     for (int i = 0; i < BENCHMARK_MICRO_REPEATS; ++i) {
         volatile size_t len = strlen(a);
         DoNotOptimize(len);
     }
-    unsigned long long et1 = get_cpu_time();
+    ull et1 = get_cpu_time();
 
     printf("misc.strlen:\t%d %d %llu\n", BENCHMARK_N, BENCHMARK_MICRO_REPEATS, et1 - st1);
 
