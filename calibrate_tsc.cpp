@@ -1,5 +1,11 @@
 #include <stdio.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#else
 #include <time.h>
+#endif
+
 #ifdef _WIN32
 #include <intrin.h>
 #else
@@ -12,11 +18,20 @@
 
 typedef unsigned long long ull;
 
+#ifdef _WIN32
+inline ull get_monotonic_time() {
+    LARGE_INTEGER freq, t;
+    QueryPerformanceFrequency(&freq);
+    QueryPerformanceCounter(&t);
+    return (ull)(t.QuadPart * 1e9 / freq.QuadPart);
+}
+#else
 inline ull get_monotonic_time() {
     timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return ts.tv_sec * 1000000000ull + ts.tv_nsec;
 }
+#endif
 
 int main() {
     if (__get_cpuid_max(0, 0) >= 0x15) {
@@ -32,7 +47,7 @@ int main() {
         } else {
             printf("denominator=%llu numerator=%llu crystal_freq=%llu\n", denom, numer, crystal_freq);
             double factor = crystal_freq * numer / denom / 1e9;
-            printf("factor=%f\n", factor);
+            printf("Calculated TSC frequency: %f MHz\n", factor * 1e3);
         }
     }
 
