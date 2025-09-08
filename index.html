@@ -220,6 +220,12 @@
               <p><strong>Platform:</strong> ${env.platform || "N/A"}</p>
               <p><strong>Python Version:</strong> ${env.python_version || "N/A"}</p>
             </div>`;
+          if (env.cacheinfo) {
+            html += `<div class="ui segment">
+                  <h5 class="ui header">Cache Information</h5>
+                 <pre style="text-wrap:auto;">${env.cacheinfo}</pre>
+                </div>`;
+          }
           if (env.meminfo) {
             html += `<div class="ui segment">
                   <h5 class="ui header">Memory Information</h5>
@@ -377,6 +383,7 @@
           yaxis: {
             title: use_c ? "Time / Complexity" : "Time per repeat (ns)",
             type: yType,
+            rangemode: yType === "log" ? undefined : "tozero",
           },
           legend: { orientation: "h" },
           margin: { t: 40 },

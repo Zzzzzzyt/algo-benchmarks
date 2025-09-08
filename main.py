@@ -53,12 +53,141 @@ def generator(
     max_repeats=1_000_000,
     min_runtime=10_000_000,
 ):
-    ns = [2**i for i in range(64)]
-
-    if not power_of_two:
-        ns += [10**i for i in range(1, 10)]
-        ns += [2 * 10**i for i in range(1, 10)]
-        ns += [5 * 10**i for i in range(1, 10)]
+    if power_of_two:
+        ns = [2**i for i in range(64)]
+    else:
+        ns = [
+            1,
+            2,
+            3,
+            4,
+            6,
+            8,
+            10,
+            16,
+            20,
+            32,
+            40,
+            50,
+            64,
+            100,
+            128,
+            200,
+            256,
+            350,
+            512,
+            700,
+            1000,
+            1024,
+            1500,
+            2048,
+            3000,
+            4096,
+            5000,
+            8192,
+            10000,
+            16384,
+            20000,
+            32768,
+            50000,
+            65536,
+            100000,
+            131072,
+            200000,
+            262144,
+            400000,
+            524288,
+            700000,
+            1000000,
+            1048576,
+            1500000,
+            2097152,
+            3000000,
+            4194304,
+            5000000,
+            8388608,
+            10000000,
+            16777216,
+            20000000,
+            33554432,
+            50000000,
+            67108864,
+            100000000,
+            134217728,
+            200000000,
+            268435456,
+            400000000,
+            536870912,
+            700000000,
+            1000000000,
+            1073741824,
+            1500000000,
+            2147483648,
+            3000000000,
+            4294967296,
+            6000000000,
+            8589934592,
+            13000000000,
+            17179869184,
+            25000000000,
+            34359738368,
+            50000000000,
+            68719476736,
+            100000000000,
+            137438953472,
+            200000000000,
+            274877906944,
+            400000000000,
+            549755813888,
+            800000000000,
+            1099511627776,
+            1500000000000,
+            2199023255552,
+            3000000000000,
+            4398046511104,
+            6000000000000,
+            8796093022208,
+            12000000000000,
+            17592186044416,
+            25000000000000,
+            35184372088832,
+            50000000000000,
+            70368744177664,
+            100000000000000,
+            140737488355328,
+            200000000000000,
+            281474976710656,
+            400000000000000,
+            562949953421312,
+            800000000000000,
+            1125899906842624,
+            1500000000000000,
+            2251799813685248,
+            3000000000000000,
+            4503599627370496,
+            7000000000000000,
+            9007199254740992,
+            13000000000000000,
+            18014398509481984,
+            25000000000000000,
+            36028797018963968,
+            50000000000000000,
+            72057594037927936,
+            100000000000000000,
+            144115188075855872,
+            200000000000000000,
+            288230376151711744,
+            400000000000000000,
+            576460752303423488,
+            800000000000000000,
+            1152921504606846976,
+            1800000000000000000,
+            2305843009213693952,
+            3000000000000000000,
+            4611686018427387904,
+            7000000000000000000,
+            9223372036854775808,
+        ]
 
     ns.sort()
     ret = []
@@ -149,14 +278,15 @@ def process_simple_test(testid, test):
                 break
         if len(values) != len(raw_values):
             print(colorize(f"Removed {len(raw_values)-len(values)} outliers from {testid} n={n}", "yellow"))
-            print(colorize(f"  Raw values: {raw_values}", "yellow"))
-            print(colorize(f"  Filtered values: {values}", "yellow"))
+            print(colorize(f"  Raw values: {raw_values}", "gray"))
+            print(colorize(f"  Filtered values: {values}", "gray"))
 
         mean = sum(values) / len(values)
         stddev = math.sqrt(sum((x - mean) ** 2 for x in values) / len(values))
 
-        mean_c = mean / complexity_fn(n)
-        stddev_c = stddev / complexity_fn(n)
+        complexity = complexity_fn(n)
+        mean_c = mean / complexity
+        stddev_c = stddev / complexity
 
         stats.append(
             {
@@ -165,11 +295,12 @@ def process_simple_test(testid, test):
                 "stddev": stddev,
                 "mean_c": mean_c,
                 "stddev_c": stddev_c,
-                "min_c": min(values) / complexity_fn(n),
-                "max_c": max(values) / complexity_fn(n),
+                "min_c": min(values) / complexity,
+                "max_c": max(values) / complexity,
                 "samples": len(values),
                 "min": min(values),
                 "max": max(values),
+                "complexity": complexity,
             }
         )
 
@@ -258,6 +389,13 @@ def collect_environment():
         env["g++"] = gpp_proc.stdout.strip() if gpp_proc.stdout else gpp_proc.stderr.strip()
     except Exception as e:
         env["g++"] = f"Error: {e}"
+
+    try:
+        # Collect cache info
+        lscpu_proc = subprocess.run(["lscpu", "-C"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        env["cacheinfo"] = lscpu_proc.stdout.strip() if lscpu_proc.stdout else lscpu_proc.stderr.strip()
+    except Exception as e:
+        env["cacheinfo"] = f"Error: {e}"
 
     try:
         # Collect lscpu info

@@ -196,8 +196,8 @@ inline BENCHMARK_ALWAYS_INLINE ull get_tsc() {
 #define BENCHMARK_TSC_FREQ 3.0e9
 #endif
 
-ull tsc_to_ns(ull tsc) {
-    return (ull)(tsc / (double)(BENCHMARK_TSC_FREQ));
+double tsc_to_ns(ull tsc) {
+    return (double)tsc / (BENCHMARK_TSC_FREQ);
 }
 
 #ifdef BENCHMARK_HIGH_PRIORITY

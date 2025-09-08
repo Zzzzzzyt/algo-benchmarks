@@ -20,7 +20,7 @@ int main(int argc, char *argv[]) {
     ull et1 = get_tsc();
     DoNotOptimize(a[0]);
 
-    printf("misc.memset.cold_0:\t%d %llu\n", BENCHMARK_N, tsc_to_ns(et1 - st1));
+    printf("misc.memset.cold_0:\t%d %.10f\n", BENCHMARK_N, tsc_to_ns(et1 - st1));
 #endif
 
     ull st2 = get_cpu_time();
@@ -30,6 +30,6 @@ int main(int argc, char *argv[]) {
     }
     ull et2 = get_cpu_time();
 
-    printf("misc.memset.hot_0:\t%d %llu\n", BENCHMARK_N, (et2 - st2) / BENCHMARK_MICRO_REPEATS);
+    printf("misc.memset.hot_0:\t%d %.10f\n", BENCHMARK_N, (double)(et2 - st2) / BENCHMARK_MICRO_REPEATS);
     return 0;
 }

@@ -26,13 +26,13 @@
         "type": "generator",
         "params": {
           "lower_bound": 100,
-          "upper_bound": 20000000,
+          "upper_bound": 40000000,
           "micro_repeats": true,
           "estimated_constant": 0.1,
           "complexity": "O(n)"
         }
       },
-      "repeats": 20
+      "repeats": 40
     }
   ]
 }
