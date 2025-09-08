@@ -2,6 +2,7 @@ import math
 import os
 import argparse
 import json
+import re
 import sys
 import subprocess
 import shutil
@@ -279,7 +280,7 @@ def hash_obj(obj):
     return hashlib.md5(json.dumps(obj, sort_keys=True).encode()).hexdigest()
 
 
-def run(profile, source_path, output_file, rerun=False, dry_run=False, high_priority=False):
+def run(profile, source_path, output_file, rerun=False, dry_run=False, high_priority=False, test_filter=None):
     global tsc_freq
     if os.path.exists("tsc_freq.txt"):
         tsc_freq = float(open("tsc_freq.txt", "r").read().strip())
@@ -307,7 +308,10 @@ def run(profile, source_path, output_file, rerun=False, dry_run=False, high_prio
         source_files = []
         for source in cfg["sources"]:
             source_config_hash = hash_obj(source)
-            source["tests"] = list(cfg["tests"].keys())
+            if test_filter:
+                source["tests"] = [testid for testid in cfg["tests"].keys() if re.match(test_filter, testid)]
+            else:
+                source["tests"] = list(cfg["tests"].keys())
             path = source["path"] = os.path.join(dirpath, source["path"])
             source_hash.append(
                 [
@@ -321,6 +325,8 @@ def run(profile, source_path, output_file, rerun=False, dry_run=False, high_prio
         source_hash = hash_obj(source_hash)
 
         for testid, test in cfg["tests"].items():
+            if test_filter and (re.match(test_filter, testid) is None):
+                continue
             test["source_files"] = source_files
             test["source_hash"] = source_hash
             test["test_hash"] = hash_obj(test)
@@ -392,40 +398,92 @@ def run(profile, source_path, output_file, rerun=False, dry_run=False, high_prio
 
 
 def main():
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
     profiles = json.load(open("profiles.json", "r", encoding="utf-8"))
 
     parser = argparse.ArgumentParser(description="Run algorithm benchmarks.")
     parser.add_argument("--profile", type=str, help="Profile to use for the benchmark", required=False)
+    parser.add_argument("--all-profiles", action="store_true", help="Run all profiles from profiles.json", required=False)
     parser.add_argument(
+        "-s",
         "--source",
         type=str,
         help="Single config file or directory containing source files",
         required=False,
         default="benchmarks",
     )
-    parser.add_argument("--output", type=str, help="File to save output", required=False, default="results.json")
-    parser.add_argument("--rerun", action="store_true", help="Do not skip existing tests", required=False, default=False)
+    parser.add_argument("--device", type=str, help="Device name to use in results", required=False, default=None)
+    parser.add_argument(
+        "-o", "--output", type=str, help="File to save output, or result directory if all-profiles is enabled", required=False
+    )
+    parser.add_argument(
+        "--results-index", type=str, help="Path to results index file", required=False, default="results_index.json"
+    )
+    parser.add_argument("--rerun", "-f", action="store_true", help="Do not skip existing tests", required=False, default=False)
     parser.add_argument("--dry-run", action="store_true", help="Doesn't actually run tests", required=False, default=False)
     parser.add_argument(
+        "-p",
         "--high-priority",
         action="store_true",
         help="Run benchmarks with high priority (may require admin/root)",
         required=False,
         default=False,
     )
+    parser.add_argument("--test-filter", type=str, help="Run only tests matching this regex", required=False, default=None)
     args = parser.parse_args()
 
-    if args.profile:
-        if args.profile not in profiles:
-            print(colorize(f"Profile '{args.profile}' not found in profiles.json.", "red"))
-            for k, v in profiles.items():
-                print(colorize(f"Available profile: {k} - {v['name']}", "yellow"))
-            exit(1)
-        profile = profiles[args.profile]
-    else:
-        profile = next(iter(profiles.values()))
+    if args.all_profiles:
+        if not args.output:
+            args.output = "results/"
+        if not args.device:
+            args.device = input("Enter device name: ").strip()
 
-    run(profile, args.source, args.output, args.rerun, args.dry_run, args.high_priority)
+        if os.path.exists(args.output) is False:
+            os.makedirs(args.output)
+
+        if os.path.exists("results_index.json"):
+            results_index = json.load(open("results_index.json", "r"))
+        else:
+            results_index = []
+
+        for profile_name, profile in profiles.items():
+            output_file = os.path.join(args.output, f"{args.device}_{profile_name.replace(' ', '_')}.json")
+            print()
+            run(
+                profile,
+                "benchmarks",
+                output_file,
+                rerun=args.rerun,
+                dry_run=args.dry_run,
+                high_priority=args.high_priority,
+                test_filter=args.test_filter,
+            )
+            results_index = [entry for entry in results_index if entry["path"] != output_file]
+            results_index.append({"name": f"{args.device} {profile_name}", "path": output_file})
+            results_index.sort(key=lambda x: x["name"])
+            json.dump(results_index, open(args.results_index, "w"))
+    else:
+        if not args.output:
+            args.output = "results.json"
+        if args.profile:
+            if args.profile not in profiles:
+                print(colorize(f"Profile '{args.profile}' not found in profiles.json.", "red"))
+                for k, v in profiles.items():
+                    print(colorize(f"Available profile: {k} - {v['name']}", "yellow"))
+                exit(1)
+            profile = profiles[args.profile]
+        else:
+            profile = next(iter(profiles.values()))
+        run(
+            profile,
+            args.source,
+            args.output,
+            rerun=args.rerun,
+            dry_run=args.dry_run,
+            high_priority=args.high_priority,
+            test_filter=args.test_filter,
+        )
 
 
 if __name__ == "__main__":
