@@ -386,28 +386,28 @@ def collect_environment():
     try:
         # Collect g++ version info
         gpp_proc = subprocess.run(["g++", "-v"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        env["g++"] = gpp_proc.stdout.strip() if gpp_proc.stdout else gpp_proc.stderr.strip()
+        env["g++"] = gpp_proc.stdout if gpp_proc.stdout else gpp_proc.stderr
     except Exception as e:
         env["g++"] = f"Error: {e}"
 
     try:
         # Collect cache info
         lscpu_proc = subprocess.run(["lscpu", "-C"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        env["cacheinfo"] = lscpu_proc.stdout.strip() if lscpu_proc.stdout else lscpu_proc.stderr.strip()
+        env["cacheinfo"] = lscpu_proc.stdout if lscpu_proc.stdout else lscpu_proc.stderr
     except Exception as e:
         env["cacheinfo"] = f"Error: {e}"
 
     try:
         # Collect lscpu info
         lscpu_proc = subprocess.run(["lscpu"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        env["cpuinfo"] = lscpu_proc.stdout.strip() if lscpu_proc.stdout else lscpu_proc.stderr.strip()
+        env["cpuinfo"] = lscpu_proc.stdout if lscpu_proc.stdout else lscpu_proc.stderr
     except Exception as e:
         env["cpuinfo"] = f"Error: {e}"
 
     try:
         # Collect free memory info
         free_proc = subprocess.run(["free", "-h"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        env["meminfo"] = free_proc.stdout.strip() if free_proc.stdout else free_proc.stderr.strip()
+        env["meminfo"] = free_proc.stdout if free_proc.stdout else free_proc.stderr
     except Exception as e:
         env["meminfo"] = f"Error: {e}"
 
