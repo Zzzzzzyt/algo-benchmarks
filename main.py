@@ -244,12 +244,12 @@ def compile_source(source, profile, defs={}, high_priority=False):
     return output_path
 
 
-def handle_simple_test(ret, testid, test, line, input_data):
+def handle_simple_test(testid, test, line, input_data):
     values = line.split(":")[1].strip().split(" ")
     cur = {}
     for i, value in enumerate(values):
         cur[test["template"][i]] = float(value)
-    ret[testid]["data"].append(cur)
+    return cur
 
 
 def process_simple_test(testid, test):
@@ -270,19 +270,31 @@ def process_simple_test(testid, test):
     for n, raw_values in stat.items():
         raw_values.sort()
         values = raw_values.copy()
-        remove_outliers = max(1, len(values) // 10)
-        for _ in range(remove_outliers):
-            if values[-1] > 1.3 * values[-2]:
-                values.pop()
-            else:
-                break
-        if len(values) != len(raw_values):
-            print(colorize(f"Removed {len(raw_values)-len(values)} outliers from {testid} n={n}", "yellow"))
-            print(colorize(f"  Raw values: {raw_values}", "gray"))
-            print(colorize(f"  Filtered values: {values}", "gray"))
+        values_squared = [v * v for v in values]
+        remove_outliers = max(1, round(len(values) / 6))
 
-        mean = sum(values) / len(values)
-        stddev = math.sqrt(sum((x - mean) ** 2 for x in values) / len(values))
+        s2 = sum(values_squared)
+        s = sum(values)
+        stddev = math.sqrt((s2 - s * s / len(values)) / (len(values) - 1))
+
+        removed = []
+        for _ in range(remove_outliers):
+            if values[-1] > s / len(values) + 4 * stddev:
+                removed.append(values[-1])
+                s = s - values[-1]
+                s2 = s2 - values_squared[-1]
+                stddev = math.sqrt((s2 - s * s / (len(values) - 1)) / (len(values) - 2))
+                values.pop()
+                values_squared.pop()
+
+        removed = removed[::-1]
+
+        if len(removed) > 0:
+            print(colorize(f"Removed {len(removed)} outliers from {testid} n={n}", "yellow"))
+            print(colorize(f"  Raw values: {raw_values}", "gray"))
+            print(colorize(f"  Removed values: {removed}", "gray"))
+
+        mean = s / len(values)
 
         complexity = complexity_fn(n)
         mean_c = mean / complexity
@@ -301,6 +313,7 @@ def process_simple_test(testid, test):
                 "min": min(values),
                 "max": max(values),
                 "complexity": complexity,
+                "raw_values": raw_values,
             }
         )
 
@@ -342,12 +355,13 @@ def run_source(source, profile, dry_run=False, high_priority=False):
                                 fake_input += f"{input_data['defs']['BENCHMARK_N']} "
                             else:
                                 fake_input += f"{random.randint(1000, 100000)} "
-                        handle_simple_test(
-                            ret,
-                            testid,
-                            test,
-                            fake_input,
-                            input_data,
+                        ret[testid]["data"].append(
+                            handle_simple_test(
+                                testid,
+                                test,
+                                fake_input,
+                                input_data,
+                            )
                         )
         else:
             output_path = compile_source(source, profile, input_data.get("defs", {}), high_priority=high_priority)
@@ -370,7 +384,7 @@ def run_source(source, profile, dry_run=False, high_priority=False):
                         ret[testid] = test.copy()
                         ret[testid]["data"] = []
                     if test["type"] == "simple":
-                        handle_simple_test(ret, testid, test, line, input_data)
+                        ret[testid]["data"].append(handle_simple_test(testid, test, line, input_data))
     return ret
 
 
@@ -512,17 +526,16 @@ def run(profile, source_path, output_file, rerun=False, dry_run=False, high_prio
                 print(colorize(f"Skipping {source['path']} as it is unused.", "yellow"))
                 continue
             results.update(run_source(source, profile, dry_run, high_priority))
-
-        for k in sorted(tests.keys()):
-            if k in results:
-                v = results[k]
-                if v["type"] == "simple":
-                    results[k] = process_simple_test(k, v)
-            else:
-                if k in old_results:
-                    results[k] = old_results[k]
+            for k in source["tests"]:
+                if k in results:
+                    v = results[k]
+                    if v["type"] == "simple":
+                        results[k] = process_simple_test(k, v)
                 else:
-                    print(colorize(f"Warning: Test {k} defined but not run.", "red"))
+                    if k in old_results:
+                        results[k] = old_results[k]
+                    else:
+                        print(colorize(f"Warning: Test {k} defined but not run.", "red"))
     except KeyboardInterrupt:
         print(colorize("Interrupted by user.", "red"))
 

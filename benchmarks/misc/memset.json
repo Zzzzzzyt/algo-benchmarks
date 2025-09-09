@@ -6,8 +6,8 @@
       "practical_lower_bound": 100,
       "practical_upper_bound": 10000000,
       "template": ["n", "time_ns"],
-      "description_en": "memset a large memory block to 0 that is not in CPU cache.\nN is the size of the memory block in bytes.\nMay be unreliable when N<10000.",
-      "description_zh": "对一个不在CPU缓存中的大内存块调用 memset 函数，设置为0。\nN 是内存块的大小（字节）。\n当 N<10000 时结果可能不可靠。"
+      "description_en": "memset a memory block to 0 that is not in CPU cache.\nN is the size of the memory block in bytes.\nMay be unreliable when N is very small or large.",
+      "description_zh": "对一个不在CPU缓存中的内存块调用 memset 函数，设置为0。\nN 是内存块的大小（字节）。\n当 N 非常小或非常大时，结果可能不可靠。"
     },
     "misc.memset.hot_0": {
       "type": "simple",
@@ -15,8 +15,8 @@
       "practical_lower_bound": 100,
       "practical_upper_bound": 10000000,
       "template": ["n", "time_ns"],
-      "description_en": "memset a large memory block to 0 that may be in CPU cache.\nN is the size of the memory block in bytes.",
-      "description_zh": "对一个可能在CPU缓存中的大内存块调用 memset 函数，设置为0。\nN 是内存块的大小（字节）。"
+      "description_en": "memset a memory block to 0 that may be in CPU cache.\nN is the size of the memory block in bytes.",
+      "description_zh": "对一个可能在CPU缓存中的内存块调用 memset 函数，设置为0。\nN 是内存块的大小（字节）。"
     }
   },
   "sources": [
