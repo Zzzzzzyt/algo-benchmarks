@@ -5,7 +5,11 @@ import os
 
 def calibrate_tsc():
     if sys.platform == "linux":
-        raw = subprocess.run("dmesg | grep -i tsc", shell=True, check=True, capture_output=True).stdout
+        try:
+            raw = subprocess.run("dmesg | grep -i tsc", shell=True, check=True, capture_output=True).stdout
+        except subprocess.CalledProcessError:
+            print("Failed to run dmesg. You may need to run this script with sudo or reboot your machine.")
+            return
         for line in raw.decode().split("\n"):
             line = line.lower().strip()
             if "tsc" in line and "mhz" in line:
@@ -22,6 +26,7 @@ def calibrate_tsc():
                                 return
                         except ValueError:
                             continue
+        print("No TSC frequency found in dmesg. Compiling and running calibration program.")
 
     if sys.platform == "win32":
         subprocess.run(["g++", "calibrate_tsc.cpp", "-O2", "-o", "calibrate_tsc.exe"], check=True)
@@ -29,6 +34,9 @@ def calibrate_tsc():
     elif sys.platform == "linux":
         subprocess.run(["g++", "calibrate_tsc.cpp", "-O2", "-o", "calibrate_tsc"], check=True)
         subprocess.run(["calibrate_tsc"], check=True)
+    else:
+        print("Unsupported platform.")
+        return
 
     if os.path.exists("tsc_freq.txt"):
         mhz = float(open("tsc_freq.txt").read().strip())

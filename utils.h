@@ -1,20 +1,3 @@
-#include <time.h>
-
-typedef unsigned long long ull;
-typedef long long ll;
-
-#ifndef BENCHMARK_N
-#define BENCHMARK_N 1024
-#endif
-
-#ifndef BENCHMARK_MICRO_REPEATS
-#define BENCHMARK_MICRO_REPEATS 1
-#endif
-
-#include <random>
-
-std::minstd_rand rng(time(NULL));
-
 // The following macros are taken from https://github.com/google/benchmark
 // from the file include/benchmark/benchmark.h
 
@@ -166,6 +149,21 @@ inline BENCHMARK_ALWAYS_INLINE void DoNotOptimize(Tp &&value) {
 // FIXME Add ClobberMemory() for non-gnu and non-msvc compilers, before C++11.
 #endif
 
+typedef unsigned long long ull;
+typedef long long ll;
+
+#ifndef BENCHMARK_N
+#define BENCHMARK_N 1024
+#endif
+
+#ifndef BENCHMARK_MICRO_REPEATS
+#define BENCHMARK_MICRO_REPEATS 1
+#endif
+
+#include <random>
+#include <time.h>
+std::minstd_rand rng(time(NULL));
+
 inline BENCHMARK_ALWAYS_INLINE ull get_cpu_time() {
     timespec ts;
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts);
@@ -178,11 +176,7 @@ inline BENCHMARK_ALWAYS_INLINE ull get_monotonic_time() {
     return ts.tv_sec * 1000000000ull + ts.tv_nsec;
 }
 
-#ifdef _WIN32
-#include <intrin.h>
-#else
 #include <x86intrin.h>
-#endif
 
 #define BENCHMARK_COMPILER_BARRIER asm volatile("" : : : "memory")
 
@@ -201,20 +195,12 @@ double tsc_to_ns(ull tsc) {
 }
 
 #ifdef BENCHMARK_HIGH_PRIORITY
-#if defined(_WIN32)
-#include <windows.h>
-#elif defined(__linux__)
 #include <limits.h>
 #include <sys/resource.h>
-#endif
 #endif
 
 void benchmark_init(int argc, char *argv[]) {
 #ifdef BENCHMARK_HIGH_PRIORITY
-#if defined(_WIN32)
-    SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
-#elif defined(__linux__)
     setpriority(PRIO_PROCESS, 0, -NZERO);
-#endif
 #endif
 }
