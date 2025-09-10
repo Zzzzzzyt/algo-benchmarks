@@ -400,7 +400,7 @@
               `<b>Type:</b> ${result.type}`,
               `<b>Complexity:</b> ${result.complexity}`,
               `<b>Max Constant:</b> ${typeof result.max_c === "number" ? result.max_c.toFixed(3) : result.max_c}`,
-              `<b>Description:</b><br>${result.description_en || "N/A"}`,
+              `<b>Description:</b><br>${htmlEscape(result.description_en || "N/A")}`,
             ].join("<br>");
           })
           .join("<hr>");
@@ -416,6 +416,15 @@
             selectedKeys
           );
         }
+      }
+
+      function htmlEscape(str) {
+        return str
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
       }
     </script>
   </body>
