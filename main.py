@@ -279,7 +279,7 @@ def process_simple_test(testid, test):
         for _ in range(remove_outliers):
             if values[-1] > values[len(values) // 2] + 3 * stddev:
                 removed.append(values[-1])
-                s = s - values[-1]F
+                s = s - values[-1]
                 s2 = s2 - (values[-1] * values[-1])
                 stddev = math.sqrt((s2 - s * s / (len(values) - 1)) / (len(values) - 2))
                 values.pop()
