@@ -267,25 +267,22 @@ def process_simple_test(testid, test):
 
     # Compute statistics for each key
     stats = []
-    for n, raw_values in stat.items():
-        raw_values.sort()
-        values = raw_values.copy()
-        values_squared = [v * v for v in values]
+    for n, values in stat.items():
+        raw_values = values.copy()
         remove_outliers = max(1, round(len(values) / 6))
 
-        s2 = sum(values_squared)
+        s2 = sum(v * v for v in values)
         s = sum(values)
         stddev = math.sqrt((s2 - s * s / len(values)) / (len(values) - 1))
 
         removed = []
         for _ in range(remove_outliers):
-            if values[-1] > s / len(values) + 4 * stddev:
+            if values[-1] > values[len(values) // 2] + 3 * stddev:
                 removed.append(values[-1])
-                s = s - values[-1]
-                s2 = s2 - values_squared[-1]
+                s = s - values[-1]F
+                s2 = s2 - (values[-1] * values[-1])
                 stddev = math.sqrt((s2 - s * s / (len(values) - 1)) / (len(values) - 2))
                 values.pop()
-                values_squared.pop()
 
         removed = removed[::-1]
 
