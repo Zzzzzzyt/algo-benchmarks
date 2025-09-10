@@ -2,7 +2,7 @@
   "tests": {
     "misc.sort.int_sorted": {
       "type": "simple",
-      "complexity": "O(n)",
+      "complexity": "O(nlogn)",
       "practical_lower_bound": 100,
       "practical_upper_bound": 10000000,
       "template": ["n", "time_ns"],
@@ -11,7 +11,7 @@
     },
     "misc.sort.int_reversed": {
       "type": "simple",
-      "complexity": "O(n)",
+      "complexity": "O(nlogn)",
       "practical_lower_bound": 100,
       "practical_upper_bound": 10000000,
       "template": ["n", "time_ns"],
