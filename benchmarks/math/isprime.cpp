@@ -74,7 +74,7 @@ int main(int argc, char *argv[]) {
     }
     ull et = get_cpu_time();
 
-    printf("math.isprime.common_random:\t%lld %d %llu\n", (ll)BENCHMARK_N, repeats2 * 2, et - st);
+    printf("math.isprime.common.random:\t%lld %d %llu\n", (ll)BENCHMARK_N, repeats2 * 2, et - st);
 
     st = get_cpu_time();
     for (ll x = n - repeats2; x < n + repeats2; ++x) {
@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
     }
     et = get_cpu_time();
 
-    printf("math.isprime.6kpm_random:\t%lld %d %llu\n", (ll)BENCHMARK_N, repeats2 * 2, et - st);
+    printf("math.isprime.6kpm.random:\t%lld %d %llu\n", (ll)BENCHMARK_N, repeats2 * 2, et - st);
 
     st = get_cpu_time();
     for (ll x = n - 500; x < n + 500; ++x) {
@@ -90,7 +90,7 @@ int main(int argc, char *argv[]) {
     }
     et = get_cpu_time();
 
-    printf("math.isprime.miller_rabin_random:\t%lld %d %llu\n", (ll)BENCHMARK_N, 1000, et - st);
+    printf("math.isprime.miller_rabin.random:\t%lld %d %llu\n", (ll)BENCHMARK_N, 1000, et - st);
 
     ll x = n;
     int i = 0;
@@ -113,21 +113,21 @@ int main(int argc, char *argv[]) {
         DoNotOptimize(isprime_common(a[i]));
     }
     et = get_cpu_time();
-    printf("math.isprime.common_primes:\t%lld %d %llu\n", (ll)BENCHMARK_N, repeats, et - st);
+    printf("math.isprime.common.prime:\t%lld %d %llu\n", (ll)BENCHMARK_N, repeats, et - st);
 
     st = get_cpu_time();
     for (i = 0; i < repeats; i++) {
         DoNotOptimize(isprime_6kpm(a[i]));
     }
     et = get_cpu_time();
-    printf("math.isprime.6kpm_primes:\t%lld %d %llu\n", (ll)BENCHMARK_N, repeats, et - st);
+    printf("math.isprime.6kpm.prime:\t%lld %d %llu\n", (ll)BENCHMARK_N, repeats, et - st);
 
     st = get_cpu_time();
     for (i = 0; i < 400; i++) {
         DoNotOptimize(miller_rabin(a[i]));
     }
     et = get_cpu_time();
-    printf("math.isprime.miller_rabin_primes:\t%lld %d %llu\n", (ll)BENCHMARK_N, 400, et - st);
+    printf("math.isprime.miller_rabin.prime:\t%lld %d %llu\n", (ll)BENCHMARK_N, 400, et - st);
 
     return 0;
 }
