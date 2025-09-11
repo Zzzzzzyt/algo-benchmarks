@@ -5,6 +5,8 @@
 int a[BENCHMARK_N];
 
 int main(int argc, char *argv[]) {
+    benchmark_init(argc, argv);
+
     for (int i = 0; i < BENCHMARK_N; i++) {
         a[i] = i;
     }

@@ -1,0 +1,59 @@
+{
+  "tests": {
+    "math.isprime.common_random": {
+      "type": "simple",
+      "complexity": "O(sqrt(n)/logn)",
+      "practical_lower_bound": 10000,
+      "practical_upper_bound": 10000000000000000,
+      "template": ["n", "micro_repeats", "time_ns"]
+    },
+    "math.isprime.6kpm_random": {
+      "type": "simple",
+      "complexity": "O(sqrt(n)/logn)",
+      "practical_lower_bound": 10000,
+      "practical_upper_bound": 10000000000000000,
+      "template": ["n", "micro_repeats", "time_ns"]
+    },
+    "math.isprime.common_primes": {
+      "type": "simple",
+      "complexity": "O(sqrt(n))",
+      "practical_lower_bound": 10000,
+      "practical_upper_bound": 10000000000000000,
+      "template": ["n", "micro_repeats", "time_ns"]
+    },
+    "math.isprime.6kpm_primes": {
+      "type": "simple",
+      "complexity": "O(sqrt(n))",
+      "practical_lower_bound": 10000,
+      "practical_upper_bound": 10000000000000000,
+      "template": ["n", "micro_repeats", "time_ns"]
+    },
+    "math.isprime.miller_rabin_random": {
+      "type": "simple",
+      "complexity": "O(logn)",
+      "practical_lower_bound": 10000,
+      "practical_upper_bound": 10000000000000000,
+      "template": ["n", "micro_repeats", "time_ns"]
+    },
+    "math.isprime.miller_rabin_primes": {
+      "type": "simple",
+      "complexity": "O(logn)",
+      "practical_lower_bound": 10000,
+      "practical_upper_bound": 10000000000000000,
+      "template": ["n", "micro_repeats", "time_ns"]
+    }
+  },
+  "sources": [
+    {
+      "path": "isprime.cpp",
+      "input": {
+        "type": "generator",
+        "params": {
+          "lower_bound": 10000,
+          "upper_bound": 10000000000000000
+        }
+      },
+      "repeats": 20
+    }
+  ]
+}

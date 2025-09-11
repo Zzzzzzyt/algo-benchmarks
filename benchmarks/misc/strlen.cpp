@@ -5,6 +5,8 @@
 char a[BENCHMARK_N];
 
 int main(int argc, char *argv[]) {
+    benchmark_init(argc, argv);
+
     // Fill buffer with nonzero chars and null-terminate
     for (int i = 0; i < BENCHMARK_N - 1; ++i)
         a[i] = 'a';

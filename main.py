@@ -39,6 +39,10 @@ def get_complexity_fn(complexity):
         return lambda n: n * math.log2(n)
     elif complexity == "O(1)":
         return lambda n: 1
+    elif complexity == "O(sqrt(n))":
+        return lambda n: math.sqrt(n)
+    elif complexity == "O(sqrt(n)/logn)":
+        return lambda n: math.sqrt(n) / math.log2(n)
     else:
         raise ValueError(f"Unknown complexity: {complexity}")
 
@@ -231,9 +235,12 @@ def compile_source(source, profile, defs={}, high_priority=False):
 
     open(source_path, "w").write(source)
 
-    compile_command = profile["build_command"].format(
-        output=output_path, source_path=source_path, defines=" ".join(f"-D{key}={value}" for key, value in defs.items())
-    )
+    defines = []
+    for k, v in defs.items():
+        v = str(v)
+        defines.append(f"-D{k}={v}")
+
+    compile_command = profile["build_command"].format(output=output_path, source_path=source_path, defines=" ".join(defines))
     print(colorize(compile_command, "magenta"))
 
     subprocess.run(compile_command, shell=True, check=True)
@@ -268,6 +275,7 @@ def process_simple_test(testid, test):
     # Compute statistics for each key
     stats = []
     for n, values in stat.items():
+        values.sort()
         raw_values = values.copy()
         remove_outliers = max(1, round(len(values) / 6))
 

@@ -160,25 +160,27 @@ typedef long long ll;
 #define BENCHMARK_MICRO_REPEATS 1
 #endif
 
+#define BENCHMARK_COMPILER_BARRIER asm volatile("" : : : "memory")
+
 #include <random>
 #include <time.h>
 std::minstd_rand rng(time(NULL));
 
 inline BENCHMARK_ALWAYS_INLINE ull get_cpu_time() {
+    BENCHMARK_COMPILER_BARRIER;
     timespec ts;
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts);
     return ts.tv_sec * 1000000000ull + ts.tv_nsec;
 }
 
 inline BENCHMARK_ALWAYS_INLINE ull get_monotonic_time() {
+    BENCHMARK_COMPILER_BARRIER;
     timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return ts.tv_sec * 1000000000ull + ts.tv_nsec;
 }
 
 #include <x86intrin.h>
-
-#define BENCHMARK_COMPILER_BARRIER asm volatile("" : : : "memory")
 
 inline BENCHMARK_ALWAYS_INLINE ull get_tsc() {
     BENCHMARK_COMPILER_BARRIER;
@@ -199,7 +201,7 @@ double tsc_to_ns(ull tsc) {
 #include <sys/resource.h>
 #endif
 
-void benchmark_init(int argc, char *argv[]) {
+inline BENCHMARK_ALWAYS_INLINE void benchmark_init(int argc, char *argv[]) {
 #ifdef BENCHMARK_HIGH_PRIORITY
     setpriority(PRIO_PROCESS, 0, -NZERO);
 #endif
