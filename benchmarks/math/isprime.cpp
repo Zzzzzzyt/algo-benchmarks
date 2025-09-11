@@ -62,11 +62,11 @@ ll a[405];
 int main(int argc, char *argv[]) {
     benchmark_init(argc, argv);
 
-    ll range = std::max(8192ll, (ll)BENCHMARK_N >> 8);
+    ll range = std::min(1ll << 28, (ll)BENCHMARK_N / 100);
 
     ll n = BENCHMARK_N - range + rng() % (range * 2);
     int repeats = std::max(1, std::min(100, (int)(1000000 / sqrt(n))));
-    int repeats2 = 20;
+    int repeats2 = BENCHMARK_N < 2000000 ? 100 : 25;
 
     ull st = get_cpu_time();
     for (ll x = n - repeats2; x < n + repeats2; ++x) {

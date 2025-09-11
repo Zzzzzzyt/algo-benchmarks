@@ -289,8 +289,10 @@ def process_simple_test(testid, test):
                 removed.append(values[-1])
                 s = s - values[-1]
                 s2 = s2 - (values[-1] * values[-1])
-                stddev = math.sqrt((s2 - s * s / (len(values) - 1)) / (len(values) - 2))
                 values.pop()
+                stddev = math.sqrt((s2 - s * s / len(values)) / (len(values) - 1))
+            else:
+                break
 
         removed = removed[::-1]
 
