@@ -57,55 +57,49 @@ bool miller_rabin(ll n) {
     return true;
 }
 
-ll a[405];
+ll a[1005];
 
 int main(int argc, char *argv[]) {
     benchmark_init(argc, argv);
 
-    ll range = std::min(1ll << 28, (ll)BENCHMARK_N / 100);
-
-    ll n = BENCHMARK_N - range + rng() % (range * 2);
+    ll n = BENCHMARK_N;
     int repeats = std::max(1, std::min(100, (int)(1000000 / sqrt(n))));
-    int repeats2 = BENCHMARK_N < 2000000 ? 100 : 25;
+    int repeats2 = std::max(30, std::min(1000, (int)(10000000 / sqrt(n))));
+
+    for (int i = 0; i < 1000; i++) {
+        a[i] = rng64() % n;
+    }
 
     ull st = get_cpu_time();
-    for (ll x = n - repeats2; x < n + repeats2; ++x) {
-        DoNotOptimize(isprime_common(x));
+    for (int i = 0; i < repeats2; i++) {
+        DoNotOptimize(isprime_common(a[i]));
     }
     ull et = get_cpu_time();
 
-    printf("math.isprime.common.random:\t%lld %d %llu\n", (ll)BENCHMARK_N, repeats2 * 2, et - st);
+    printf("math.isprime.common.random:\t%lld %d %llu\n", n, repeats2, et - st);
 
     st = get_cpu_time();
-    for (ll x = n - repeats2; x < n + repeats2; ++x) {
-        DoNotOptimize(isprime_6kpm(x));
+    for (int i = 0; i < repeats2; i++) {
+        DoNotOptimize(isprime_6kpm(a[i]));
     }
     et = get_cpu_time();
 
-    printf("math.isprime.6kpm.random:\t%lld %d %llu\n", (ll)BENCHMARK_N, repeats2 * 2, et - st);
+    printf("math.isprime.6kpm.random:\t%lld %d %llu\n", n, repeats2, et - st);
 
     st = get_cpu_time();
-    for (ll x = n - 500; x < n + 500; ++x) {
-        DoNotOptimize(miller_rabin(x));
+    for (int i = 0; i < 1000; i++) {
+        DoNotOptimize(miller_rabin(a[i]));
     }
     et = get_cpu_time();
 
-    printf("math.isprime.miller_rabin.random:\t%lld %d %llu\n", (ll)BENCHMARK_N, 1000, et - st);
+    printf("math.isprime.miller_rabin.random:\t%lld %d %llu\n", n, 1000, et - st);
 
-    ll x = n;
     int i = 0;
-    while (i < 200) {
+    while (i < 500) {
+        ll x = rng64() % n;
         if (miller_rabin(x)) {
             a[i++] = x;
         }
-        x++;
-    }
-    x = n - 1;
-    while (i < 400) {
-        if (miller_rabin(x)) {
-            a[i++] = x;
-        }
-        x--;
     }
 
     st = get_cpu_time();
@@ -113,21 +107,21 @@ int main(int argc, char *argv[]) {
         DoNotOptimize(isprime_common(a[i]));
     }
     et = get_cpu_time();
-    printf("math.isprime.common.prime:\t%lld %d %llu\n", (ll)BENCHMARK_N, repeats, et - st);
+    printf("math.isprime.common.prime:\t%lld %d %llu\n", n, repeats, et - st);
 
     st = get_cpu_time();
     for (i = 0; i < repeats; i++) {
         DoNotOptimize(isprime_6kpm(a[i]));
     }
     et = get_cpu_time();
-    printf("math.isprime.6kpm.prime:\t%lld %d %llu\n", (ll)BENCHMARK_N, repeats, et - st);
+    printf("math.isprime.6kpm.prime:\t%lld %d %llu\n", n, repeats, et - st);
 
     st = get_cpu_time();
-    for (i = 0; i < 400; i++) {
+    for (i = 0; i < 500; i++) {
         DoNotOptimize(miller_rabin(a[i]));
     }
     et = get_cpu_time();
-    printf("math.isprime.miller_rabin.prime:\t%lld %d %llu\n", (ll)BENCHMARK_N, 400, et - st);
+    printf("math.isprime.miller_rabin.prime:\t%lld %d %llu\n", n, 500, et - st);
 
     return 0;
 }

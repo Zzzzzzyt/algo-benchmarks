@@ -277,7 +277,7 @@ def process_simple_test(testid, test):
     for n, values in stat.items():
         values.sort()
         raw_values = values.copy()
-        remove_outliers = max(1, round(len(values) / 6))
+        remove_outliers = min(test.get("max_outlier", 1000), max(test.get("min_outlier", 1), round(len(values) / 6)))
 
         s2 = sum(v * v for v in values)
         s = sum(values)

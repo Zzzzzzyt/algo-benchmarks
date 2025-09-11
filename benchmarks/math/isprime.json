@@ -5,9 +5,10 @@
       "complexity": "O(sqrt(n)/logn)",
       "practical_lower_bound": 10000,
       "practical_upper_bound": 10000000000000000,
+      "max_outlier": 1,
       "template": ["n", "micro_repeats", "time_ns"],
       "description_en": "Check if a number is prime using common trial division on random numbers.\nNumbers are sampled uniformly randomly in the neighborhood of N (no more than ±1%).",
-      "description_zh": "使用常规试除法检查随机数是否为质数。\n随机数在 N 附近不超过 ±1% 的区间内均匀随机采样得到。"
+      "description_zh": "使用常规试除法检查随机数是否为质数。\n随机数在 [0, N) 内均匀随机采样得到。"
     },
     "math.isprime.common.prime": {
       "type": "simple",
@@ -16,16 +17,17 @@
       "practical_upper_bound": 10000000000000000,
       "template": ["n", "micro_repeats", "time_ns"],
       "description_en": "Check if a number is prime using common trial division on prime numbers.\nNumbers are sampled uniformly randomly in the neighborhood of N (no more than ±1%).",
-      "description_zh": "使用常规试除法检查质数是否为质数。\n随机数在 N 附近不超过 ±1% 的区间内均匀随机采样得到。"
+      "description_zh": "使用常规试除法检查质数是否为质数。\n随机质数在 [0, N) 内均匀随机采样得到。"
     },
     "math.isprime.6kpm.random": {
       "type": "simple",
       "complexity": "O(sqrt(n)/logn)",
       "practical_lower_bound": 10000,
       "practical_upper_bound": 10000000000000000,
+      "max_outlier": 1,
       "template": ["n", "micro_repeats", "time_ns"],
       "description_en": "Check if a number is prime using 6k±1 trial division on random numbers.\nNumbers are sampled uniformly randomly in the neighborhood of N (no more than ±1%).",
-      "description_zh": "使用 6k±1 试除法检查随机数是否为质数。\n随机数在 N 附近不超过 ±1% 的区间内均匀随机采样得到。"
+      "description_zh": "使用 6k±1 试除法检查随机数是否为质数。\n随机数在 [0, N) 内均匀随机采样得到。"
     },
     "math.isprime.6kpm.prime": {
       "type": "simple",
@@ -34,7 +36,7 @@
       "practical_upper_bound": 10000000000000000,
       "template": ["n", "micro_repeats", "time_ns"],
       "description_en": "Check if a number is prime using 6k±1 trial division on prime numbers.\nNumbers are sampled uniformly randomly in the neighborhood of N (no more than ±1%).",
-      "description_zh": "使用 6k±1 试除法检查质数是否为质数。\n随机数在 N 附近不超过 ±1% 的区间内均匀随机采样得到。"
+      "description_zh": "使用 6k±1 试除法检查质数是否为质数。\n随机质数在 [0, N) 内均匀随机采样得到。"
     },
     "math.isprime.miller_rabin.random": {
       "type": "simple",
@@ -43,7 +45,7 @@
       "practical_upper_bound": 10000000000000000,
       "template": ["n", "micro_repeats", "time_ns"],
       "description_en": "Check if a number is prime using Miller-Rabin primality test on random numbers.\nOnly {2, 325, 9375, 28178, 450775, 9780504, 1795265022} are used as bases.\nNumbers are sampled uniformly randomly in the neighborhood of N (no more than ±1%).",
-      "description_zh": "使用 Miller-Rabin 素性测试检查随机数是否为质数。\n仅使用 {2, 325, 9375, 28178, 450775, 9780504, 1795265022} 作为基数。\n随机数在 N 附近不超过 ±1% 的区间内均匀随机采样得到。"
+      "description_zh": "使用 Miller-Rabin 素性测试检查随机数是否为质数。\n仅使用 {2, 325, 9375, 28178, 450775, 9780504, 1795265022} 作为基数。\n随机质数在 [0, N) 内均匀随机采样得到。"
     },
     "math.isprime.miller_rabin.prime": {
       "type": "simple",
@@ -52,7 +54,7 @@
       "practical_upper_bound": 10000000000000000,
       "template": ["n", "micro_repeats", "time_ns"],
       "description_en": "Check if a number is prime using Miller-Rabin primality test on prime numbers.\nOnly {2, 325, 9375, 28178, 450775, 9780504, 1795265022} are used as bases.\nNumbers are sampled uniformly randomly in the neighborhood of N (no more than ±1%).",
-      "description_zh": "使用 Miller-Rabin 素性测试检查质数是否为质数。\n仅使用 {2, 325, 9375, 28178, 450775, 9780504, 1795265022} 作为基数。\n随机数在 N 附近不超过 ±1% 的区间内均匀随机采样得到。"
+      "description_zh": "使用 Miller-Rabin 素性测试检查质数是否为质数。\n仅使用 {2, 325, 9375, 28178, 450775, 9780504, 1795265022} 作为基数。\n随机质数在 [0, N) 内均匀随机采样得到。"
     }
   },
   "sources": [

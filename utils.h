@@ -166,6 +166,10 @@ typedef long long ll;
 #include <time.h>
 std::minstd_rand rng(time(NULL));
 
+inline BENCHMARK_ALWAYS_INLINE ll rng64() {
+    return rng() * 2147483647ll + rng();
+}
+
 inline BENCHMARK_ALWAYS_INLINE ull get_cpu_time() {
     BENCHMARK_COMPILER_BARRIER;
     timespec ts;
