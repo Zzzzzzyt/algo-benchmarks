@@ -6,3 +6,4 @@ temp/
 **/*.exe
 calibrate_tsc
 tsc_freq.txt
+results.json

@@ -128,27 +128,28 @@
       </div>
     </div>
     <script>
-      let currentResultsData = null;
-      let currentProfileData = null;
-
-      // Load results index and populate dropdown
-      fetch("results_index.json")
-        .then((r) => r.json())
-        .then((index) => {
-          populateProfileDropdown(index);
-          if (index.length > 0) {
-            loadProfile(index[0].path, index[0].name);
+      let results_index = [];
+      fetch("results.json")
+        .then((r) => {
+          if (r.ok) {
+            results_index.push({ path: "results.json", name: "Default Results" });
           }
         })
-        .catch(() => {
-          // Fallback to direct results.json if index doesn't exist
-          fetch("results.json")
+        .then(() => {
+          return fetch("results_index.json")
             .then((r) => r.json())
             .then((data) => {
-              currentResultsData = data;
-              window._resultsData = data;
-              buildTree(data["results"] || data);
+              results_index = results_index.concat(data);
+            })
+            .catch((err) => {
+              console.error("Failed to load results_index.json:", err);
             });
+        })
+        .finally(() => {
+          populateProfileDropdown(results_index);
+          if (results_index.length > 0) {
+            loadProfile(results_index[0].path, results_index[0].name);
+          }
         });
 
       function populateProfileDropdown(profiles) {
@@ -179,11 +180,9 @@
         fetch(path)
           .then((r) => r.json())
           .then((data) => {
-            currentResultsData = data.results || data;
-            currentProfileData = data;
-            window._resultsData = currentResultsData;
+            window._resultsData = data.results;
 
-            buildTree(currentResultsData);
+            buildTree(data.results);
             displayProfileInfo(data);
 
             // Set dropdown text
