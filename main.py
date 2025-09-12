@@ -280,7 +280,7 @@ def process_simple_test(testid, test):
         remove_outliers = test.get("max_outlier", max(1, round(len(values) / 6)))
 
         mean = sum(values) / len(values)
-        stddev = sum((x - mean) ** 2 for x in values) / (len(values) - 1)
+        stddev = math.sqrt(sum((x - mean) ** 2 for x in values) / (len(values) - 1))
 
         removed = []
         for _ in range(remove_outliers):
@@ -288,7 +288,7 @@ def process_simple_test(testid, test):
                 removed.append(values[-1])
                 values.pop()
                 mean = sum(values) / len(values)
-                stddev = sum((x - mean) ** 2 for x in values) / (len(values) - 1)
+                stddev = math.sqrt(sum((x - mean) ** 2 for x in values) / (len(values) - 1))
             else:
                 break
 
