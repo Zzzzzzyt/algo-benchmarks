@@ -277,20 +277,18 @@ def process_simple_test(testid, test):
     for n, values in stat.items():
         values.sort()
         raw_values = values.copy()
-        remove_outliers = min(test.get("max_outlier", 1000), max(test.get("min_outlier", 1), round(len(values) / 6)))
+        remove_outliers = test.get("max_outlier", max(1, round(len(values) / 6)))
 
-        s2 = sum(v * v for v in values)
-        s = sum(values)
-        stddev = math.sqrt((s2 - s * s / len(values)) / (len(values) - 1))
+        mean = sum(values) / len(values)
+        stddev = sum((x - mean) ** 2 for x in values) / (len(values) - 1)
 
         removed = []
         for _ in range(remove_outliers):
             if values[-1] > values[len(values) // 2] + 3 * stddev:
                 removed.append(values[-1])
-                s = s - values[-1]
-                s2 = s2 - (values[-1] * values[-1])
                 values.pop()
-                stddev = math.sqrt((s2 - s * s / len(values)) / (len(values) - 1))
+                mean = sum(values) / len(values)
+                stddev = sum((x - mean) ** 2 for x in values) / (len(values) - 1)
             else:
                 break
 
@@ -300,8 +298,6 @@ def process_simple_test(testid, test):
             print(colorize(f"Removed {len(removed)} outliers from {testid} n={n}", "yellow"))
             print(colorize(f"  Raw values: {raw_values}", "gray"))
             print(colorize(f"  Removed values: {removed}", "gray"))
-
-        mean = s / len(values)
 
         complexity = complexity_fn(n)
         mean_c = mean / complexity
