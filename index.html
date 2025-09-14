@@ -209,18 +209,25 @@
               <h5 class="ui header">Profile</h5>
               <p><strong>Name:</strong> ${data.profile.name || "N/A"}</p>
               <p><strong>Build Command:</strong> <code>${data.profile.build_command || "N/A"}</code></p>
+              <p><strong>Comment:</strong><br>${htmlEscape(data.comment).replace(/(?:\r\n|\r|\n)/g, "<br>") || "N/A"}</p>
             </div>`;
         }
 
         if (data.environment) {
           const env = data.environment;
           html += `<div class="ui segment">
-              <h5 class="ui header">System Information</h5>
+              <h5 class="ui header">General Information</h5>
               <p><strong>Platform:</strong> ${env.platform || "N/A"}</p>
               <p><strong>Python Version:</strong> ${env.python_version || "N/A"}</p>
               <p><strong>Timestamp:</strong> ${env.timestamp || "N/A"}</p>
               <p><strong>TSC Frequency:</strong> ${env.tsc_freq ? (env.tsc_freq * 1000).toFixed(3) + "Mhz" : "N/A"}</p>
             </div>`;
+          if (env.sysinfo) {
+            html += `<div class="ui segment">
+                  <h5 class="ui header">System Information</h5>
+                 <pre style="text-wrap:auto;">${env.sysinfo}</pre>
+                </div>`;
+          }
           if (env.cacheinfo) {
             html += `<div class="ui segment">
                   <h5 class="ui header">Cache Information</h5>

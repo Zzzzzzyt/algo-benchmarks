@@ -402,6 +402,14 @@ def collect_environment():
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime()),
         "tsc_freq": tsc_freq,
     }
+
+    try:
+        # Collect system info
+        uname_proc = subprocess.run(["uname", "-a"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        env["sysinfo"] = uname_proc.stdout if uname_proc.stdout else uname_proc.stderr
+    except Exception as e:
+        env["sysinfo"] = f"Error: {e}"
+
     try:
         # Collect g++ version info
         gpp_proc = subprocess.run(["g++", "-v"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -437,7 +445,16 @@ def hash_obj(obj):
     return hashlib.md5(json.dumps(obj, sort_keys=True).encode()).hexdigest()
 
 
-def run(profile, source_path, output_file, rerun=False, dry_run=False, high_priority=False, test_filter=None):
+def run(
+    profile,
+    source_path,
+    output_file,
+    rerun=False,
+    dry_run=False,
+    high_priority=False,
+    test_filter=None,
+    comment_file=None,
+):
     global tsc_freq
     if os.path.exists("tsc_freq.txt"):
         tsc_freq = float(open("tsc_freq.txt", "r").read().strip())
@@ -546,8 +563,13 @@ def run(profile, source_path, output_file, rerun=False, dry_run=False, high_prio
 
     sorted_results = {k: results[k] for k in sorted(results.keys())}
 
+    output = {"profile": profile, "environment": collect_environment(), "results": sorted_results}
+
+    if comment_file and os.path.exists(comment_file):
+        output["comment"] = open(comment_file, "r", encoding="utf-8").read().replace("\r\n", "\n")
+
     json.dump(
-        {"profile": profile, "environment": collect_environment(), "results": sorted_results},
+        output,
         open(output_file, "w", encoding="utf-8"),
         separators=(",", ":"),
     )
@@ -560,7 +582,7 @@ def main():
 
     parser = argparse.ArgumentParser(description="Run algorithm benchmarks.")
     parser.add_argument("--profile", type=str, help="Profile to use for the benchmark", required=False)
-    parser.add_argument("--all-profiles", action="store_true", help="Run all profiles from profiles.json", required=False)
+    parser.add_argument("-a", "--all-profiles", action="store_true", help="Run all profiles from profiles.json", required=False)
     parser.add_argument(
         "-s",
         "--source",
@@ -577,17 +599,27 @@ def main():
         "--results-index", type=str, help="Path to results index file", required=False, default="results_index.json"
     )
     parser.add_argument("--rerun", "-f", action="store_true", help="Do not skip existing tests", required=False, default=False)
-    parser.add_argument("--dry-run", action="store_true", help="Doesn't actually run tests", required=False, default=False)
     parser.add_argument(
         "-p",
         "--high-priority",
         action="store_true",
-        help="Run benchmarks with high priority (may require admin/root)",
+        help="Run benchmarks with high priority (may require root)",
         required=False,
         default=False,
     )
+    parser.add_argument("--dry-run", action="store_true", help="Doesn't actually run tests", required=False, default=False)
     parser.add_argument("--test-filter", type=str, help="Run only tests matching this regex", required=False, default=None)
+    parser.add_argument("--list-profiles", action="store_true", help="List available profiles", required=False, default=False)
+    parser.add_argument(
+        "-c", "--comment-file", type=str, help="Comment file to add to results", required=False, default="comment.txt"
+    )
     args = parser.parse_args()
+
+    if args.list_profiles:
+        print("Available profiles:")
+        for k, v in profiles.items():
+            print("  {k}: {v['name']}", "yellow")
+        exit(0)
 
     if args.all_profiles:
         if not args.output:
@@ -614,6 +646,7 @@ def main():
                 dry_run=args.dry_run,
                 high_priority=args.high_priority,
                 test_filter=args.test_filter,
+                comment_file=args.comment_file,
             )
             results_index = [entry for entry in results_index if entry["path"] != output_file]
             results_index.append({"name": f"{args.device} {profile_name}", "path": output_file})
@@ -639,6 +672,7 @@ def main():
             dry_run=args.dry_run,
             high_priority=args.high_priority,
             test_filter=args.test_filter,
+            comment_file=args.comment_file,
         )
 
 
