@@ -35,6 +35,8 @@ def get_complexity_fn(complexity):
         return lambda n: n**3
     elif complexity == "O(logn)":
         return lambda n: math.log2(n)
+    elif complexity == "O(log^2n)":
+        return lambda n: math.log2(n) ** 2
     elif complexity == "O(nlogn)":
         return lambda n: n * math.log2(n)
     elif complexity == "O(1)":
