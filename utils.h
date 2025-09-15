@@ -205,8 +205,18 @@ double tsc_to_ns(ull tsc) {
 #include <sys/resource.h>
 #endif
 
+#ifdef BENCHMARK_CPU_AFFINITY
+#include <sched.h>
+#endif
+
 inline BENCHMARK_ALWAYS_INLINE void benchmark_init(int argc, char *argv[]) {
 #ifdef BENCHMARK_HIGH_PRIORITY
     setpriority(PRIO_PROCESS, 0, -NZERO);
+#endif
+#ifdef BENCHMARK_CPU_AFFINITY
+    cpu_set_t cpu_set;
+    CPU_ZERO(&cpu_set);
+    CPU_SET(BENCHMARK_CPU_AFFINITY, &cpu_set);
+    sched_setaffinity(0, sizeof(cpu_set), &cpu_set);
 #endif
 }

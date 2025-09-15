@@ -217,9 +217,11 @@ def generator(
     return ret
 
 
-def compile_source(source, profile, defs={}, high_priority=False):
+def compile_source(source, profile, defs={}, high_priority=False, cpu_affinity=None):
     if high_priority:
         defs["BENCHMARK_HIGH_PRIORITY"] = 1
+    if cpu_affinity is not None:
+        defs["BENCHMARK_CPU_AFFINITY"] = str(int(cpu_affinity))
 
     defs["BENCHMARK_TSC_FREQ"] = f"{tsc_freq:.10f}"
 
@@ -333,7 +335,7 @@ def process_simple_test(testid, test):
     return test
 
 
-def run_source(source, profile, dry_run=False, high_priority=False):
+def run_source(source, profile, dry_run=False, high_priority=False, cpu_affinity=None):
     global tests
 
     ret = {}
@@ -369,7 +371,13 @@ def run_source(source, profile, dry_run=False, high_priority=False):
                             )
                         )
         else:
-            output_path = compile_source(source, profile, input_data.get("defs", {}), high_priority=high_priority)
+            output_path = compile_source(
+                source,
+                profile,
+                input_data.get("defs", {}),
+                high_priority=high_priority,
+                cpu_affinity=cpu_affinity,
+            )
             for repeat in range(source["repeats"]):
                 p = subprocess.run(
                     output_path,
@@ -452,6 +460,7 @@ def run(
     rerun=False,
     dry_run=False,
     high_priority=False,
+    cpu_affinity=None,
     test_filter=None,
     comment_file=None,
 ):
@@ -547,7 +556,15 @@ def run(
             if source["path"] in unused_sources:
                 print(colorize(f"Skipping {source['path']} as it is unused.", "yellow"))
                 continue
-            results.update(run_source(source, profile, dry_run, high_priority))
+            results.update(
+                run_source(
+                    source,
+                    profile,
+                    dry_run=dry_run,
+                    high_priority=high_priority,
+                    cpu_affinity=cpu_affinity,
+                )
+            )
             for k in source["tests"]:
                 if k in results:
                     v = results[k]
@@ -591,7 +608,7 @@ def main():
         required=False,
         default="benchmarks",
     )
-    parser.add_argument("--device", type=str, help="Device name to use in results", required=False, default=None)
+    parser.add_argument("-d", "--device", type=str, help="Device name to use in results", required=False, default=None)
     parser.add_argument(
         "-o", "--output", type=str, help="File to save output, or result directory if all-profiles is enabled", required=False
     )
@@ -606,6 +623,9 @@ def main():
         help="Run benchmarks with high priority (may require root)",
         required=False,
         default=False,
+    )
+    parser.add_argument(
+        "--pin", "--cpu-affinity", type=int, help="Pin benchmark process to this CPU core", required=False, default=None
     )
     parser.add_argument("--dry-run", action="store_true", help="Doesn't actually run tests", required=False, default=False)
     parser.add_argument("--test-filter", type=str, help="Run only tests matching this regex", required=False, default=None)
@@ -645,6 +665,7 @@ def main():
                 rerun=args.rerun,
                 dry_run=args.dry_run,
                 high_priority=args.high_priority,
+                cpu_affinity=args.pin,
                 test_filter=args.test_filter,
                 comment_file=args.comment_file,
             )
@@ -671,6 +692,7 @@ def main():
             rerun=args.rerun,
             dry_run=args.dry_run,
             high_priority=args.high_priority,
+            cpu_affinity=args.pin,
             test_filter=args.test_filter,
             comment_file=args.comment_file,
         )
