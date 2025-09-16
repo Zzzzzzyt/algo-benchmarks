@@ -217,9 +217,9 @@ def generator(
     return ret
 
 
-def compile_source(source, profile, defs={}, high_priority=False, cpu_affinity=None):
-    if high_priority:
-        defs["BENCHMARK_HIGH_PRIORITY"] = 1
+def compile_source(source, profile, defs={}, process_priority=None, cpu_affinity=None):
+    if process_priority is not None:
+        defs["BENCHMARK_PROCESS_PRIORITY"] = str(int(process_priority))
     if cpu_affinity is not None:
         defs["BENCHMARK_CPU_AFFINITY"] = str(int(cpu_affinity))
 
@@ -335,7 +335,7 @@ def process_simple_test(testid, test):
     return test
 
 
-def run_source(source, profile, dry_run=False, high_priority=False, cpu_affinity=None):
+def run_source(source, profile, dry_run=False, process_priority=None, cpu_affinity=None):
     global tests
 
     ret = {}
@@ -375,7 +375,7 @@ def run_source(source, profile, dry_run=False, high_priority=False, cpu_affinity
                 source,
                 profile,
                 input_data.get("defs", {}),
-                high_priority=high_priority,
+                process_priority=process_priority,
                 cpu_affinity=cpu_affinity,
             )
             for repeat in range(source["repeats"]):
@@ -459,7 +459,7 @@ def run(
     output_file,
     rerun=False,
     dry_run=False,
-    high_priority=False,
+    process_priority=None,
     cpu_affinity=None,
     test_filter=None,
     comment_file=None,
@@ -561,7 +561,7 @@ def run(
                     source,
                     profile,
                     dry_run=dry_run,
-                    high_priority=high_priority,
+                    process_priority=process_priority,
                     cpu_affinity=cpu_affinity,
                 )
             )
@@ -625,6 +625,14 @@ def main():
         default=False,
     )
     parser.add_argument(
+        "-P",
+        "--realtime-priority",
+        action="store_true",
+        help="Run benchmarks with realtime priority (may require root)",
+        required=False,
+        default=False,
+    )
+    parser.add_argument(
         "--pin", "--cpu-affinity", type=int, help="Pin benchmark process to this CPU core", required=False, default=None
     )
     parser.add_argument("--dry-run", action="store_true", help="Doesn't actually run tests", required=False, default=False)
@@ -640,6 +648,13 @@ def main():
         for k, v in profiles.items():
             print("  {k}: {v['name']}", "yellow")
         exit(0)
+
+    if args.realtime_priority:
+        process_priority = 99
+    elif args.high_priority:
+        process_priority = 20
+    else:
+        process_priority = None
 
     if args.all_profiles:
         if not args.output:
@@ -664,7 +679,7 @@ def main():
                 output_file,
                 rerun=args.rerun,
                 dry_run=args.dry_run,
-                high_priority=args.high_priority,
+                process_priority=process_priority,
                 cpu_affinity=args.pin,
                 test_filter=args.test_filter,
                 comment_file=args.comment_file,
@@ -691,7 +706,7 @@ def main():
             args.output,
             rerun=args.rerun,
             dry_run=args.dry_run,
-            high_priority=args.high_priority,
+            process_priority=process_priority,
             cpu_affinity=args.pin,
             test_filter=args.test_filter,
             comment_file=args.comment_file,

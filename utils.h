@@ -200,7 +200,7 @@ double tsc_to_ns(ull tsc) {
     return (double)tsc / (BENCHMARK_TSC_FREQ);
 }
 
-#ifdef BENCHMARK_HIGH_PRIORITY
+#ifdef BENCHMARK_PROCESS_PRIORITY
 #include <limits.h>
 #include <sys/resource.h>
 #endif
@@ -210,8 +210,14 @@ double tsc_to_ns(ull tsc) {
 #endif
 
 inline BENCHMARK_ALWAYS_INLINE void benchmark_init(int argc, char *argv[]) {
-#ifdef BENCHMARK_HIGH_PRIORITY
+#ifdef BENCHMARK_PROCESS_PRIORITY
+#if BENCHMARK_PROCESS_PRIORITY == 20
     setpriority(PRIO_PROCESS, 0, -NZERO);
+#elif BENCHMARK_PROCESS_PRIORITY == 99
+    sched_param param;
+    param.sched_priority = sched_get_priority_max(SCHED_FIFO);
+    sched_setscheduler(0, SCHED_FIFO, &param);
+#endif
 #endif
 #ifdef BENCHMARK_CPU_AFFINITY
     cpu_set_t cpu_set;
