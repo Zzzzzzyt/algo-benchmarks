@@ -23,11 +23,18 @@ bool isprime_6kpm(ll n) {
     return true;
 }
 
-ll quick_pow(__int128_t x, ll a, ll m) {
-    __int128_t res = 1;
+inline ll divmod(ll a, ll b, ll m) {
+    ll res;
+    asm("imul %%rdx\n\t"
+        "idiv %%rcx" : "=d"(res) : "a"(a), "d"(b), "c"(m));
+    return res;
+}
+
+ll quick_pow(ll x, ll a, ll m) {
+    ll res = 1;
     for (; a; a >>= 1) {
-        if (a & 1) res = (res * x) % m;
-        x = (x * x) % m;
+        if (a & 1) res = divmod(res, x, m);
+        x = divmod(x, x, m);
     }
     return res;
 }
@@ -38,9 +45,9 @@ const ll bases[] = {2, 325, 9375, 28178, 450775, 9780504, 1795265022ll};
 bool miller_rabin(ll n) {
     if (n < 3 || n % 2 == 0) return n == 2;
     if (n % 3 == 0) return n == 3;
-    ll u = n - 1, t = 0;
-    while (u % 2 == 0)
-        u /= 2, ++t;
+    ll u = n - 1;
+    int t = __builtin_ctzll(u);
+    u >>= t;
     for (int i = 0; i < 7; ++i) {
         ll a = bases[i] % n;
         if (a == 0) return true;
@@ -50,7 +57,7 @@ bool miller_rabin(ll n) {
         int s;
         for (s = 0; s < t; ++s) {
             if (v == n - 1) break;
-            v = __int128_t(v) * v % n;
+            v = divmod(v, v, n);
         }
         if (s == t) return false;
     }
