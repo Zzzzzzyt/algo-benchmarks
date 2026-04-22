@@ -217,7 +217,9 @@ def generator(
     return ret
 
 
-def compile_source(source, profile, defs={}, process_priority=None, cpu_affinity=None):
+def compile_source(source, profile, defs={}):
+    global tsc_freq, process_priority, cpu_affinity
+
     if process_priority is not None:
         defs["BENCHMARK_PROCESS_PRIORITY"] = str(int(process_priority))
     if cpu_affinity is not None:
@@ -234,8 +236,6 @@ def compile_source(source, profile, defs={}, process_priority=None, cpu_affinity
 
     source_path = "temp/source.cpp"
     output_path = "temp/output"
-    if sys.platform == "win32":
-        output_path += ".exe"
 
     open(source_path, "w").write(source)
 
@@ -255,87 +255,155 @@ def compile_source(source, profile, defs={}, process_priority=None, cpu_affinity
     return output_path
 
 
+def execute_source(executable_path):
+    p = subprocess.run(
+        executable_path,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    return p.stdout, p.stderr
+
+
 def handle_simple_test(testid, test, line, input_data):
     values = line.split(":")[1].strip().split(" ")
     cur = {}
     for i, value in enumerate(values):
         cur[test["template"][i]] = float(value)
+
     return cur
 
 
 def process_simple_test(testid, test):
-    stat = {}
-    for sample in test["data"]:
-        n = sample["n"]
-        if n not in stat:
-            stat[n] = []
-        t = sample["time_ns"]
-        if "micro_repeats" in sample:
-            t /= sample["micro_repeats"]
-        stat[n].append(t)
+    # Organize all data by n value and metric type
+    organized_data = {}
+    all_metrics = set()
+
+    for entry in test["data"]:
+        n = entry["n"]
+        if n not in organized_data:
+            organized_data[n] = []
+
+        # Process micro repeats
+        if "micro_repeats" in entry:
+            entry["time_ns"] /= entry["micro_repeats"]
+            if "branches" in entry:
+                entry["branch_miss_rate"] = entry["branch_misses"] / max(entry["branches"], 1)
+                entry["branch_misses"] /= entry["micro_repeats"]
+                entry["branches"] /= entry["micro_repeats"]
+            if "cpu_cycles" in entry:
+                entry["ipc"] = entry["instructions"] / max(entry["cpu_cycles"], 1)
+                entry["instructions"] /= entry["micro_repeats"]
+                entry["cpu_cycles"] /= entry["micro_repeats"]
+            if "cache_references" in entry:
+                entry["cache_miss_rate"] = entry["cache_misses"] / max(entry["cache_references"], 1)
+                entry["cache_misses"] /= entry["micro_repeats"]
+                entry["cache_references"] /= entry["micro_repeats"]
+            if "L1-dcache-loads" in entry:
+                entry["l1_dcache_miss_rate"] = entry["l1_dcache_load_misses"] / max(entry["l1_dcache_loads"], 1)
+                entry["l1_dcache_load_misses"] /= entry["micro_repeats"]
+                entry["l1_dcache_loads"] /= entry["micro_repeats"]
+
+        organized_data[n].append(entry)
+
+        # Process fields
+        for key in entry.keys():
+            if key not in ["n", "micro_repeats"]:
+                all_metrics.add(key)
 
     complexity_fn = get_complexity_fn(test["complexity"])
 
-    # Compute statistics for each key
+    # Compute statistics for each n and each metric
     stats = []
-    for n, values in stat.items():
+    for n in sorted(organized_data.keys()):
+        raw_data = organized_data[n]
+
+        # Start with basic info
+        stat_entry = {
+            "n": n,
+            "complexity": complexity_fn(n),
+        }
+
+        # Process each metric
+        values = []
+        for idx, entry in enumerate(raw_data):
+            values.append((entry["time_ns"], idx))
         values.sort()
         raw_values = values.copy()
+
+        # Remove outliers (only for timing data to maintain CPU counter accuracy)
         remove_outliers = test.get("max_outlier", max(1, round(len(values) / 6)))
-
-        mean = sum(values) / len(values)
-        stddev = math.sqrt(sum((x - mean) ** 2 for x in values) / (len(values) - 1))
-
         removed = []
+
+        mean = sum(map(lambda x: x[0], values)) / len(values)
+        stddev = (
+            math.sqrt(sum((x - mean) ** 2 for x in map(lambda x: x[0], values)) / (len(values) - 1)) if len(values) > 1 else 0
+        )
+
         for _ in range(remove_outliers):
-            if values[-1] > values[len(values) // 2] + 3 * stddev:
+            if len(values) > 1 and values[-1][0] > values[len(values) // 2][0] + 3 * stddev:
                 removed.append(values[-1])
                 values.pop()
-                mean = sum(values) / len(values)
-                stddev = math.sqrt(sum((x - mean) ** 2 for x in values) / (len(values) - 1))
+                if len(values) > 1:
+                    mean = sum(map(lambda x: x[0], values)) / len(values)
+                    stddev = (
+                        math.sqrt(sum((x - mean) ** 2 for x in map(lambda x: x[0], values)) / (len(values) - 1))
+                        if len(values) > 1
+                        else 0
+                    )
             else:
                 break
 
-        removed = removed[::-1]
-
-        if len(removed) > 0:
+        if len(removed) > 0 and verbose:
             print(colorize(f"Removed {len(removed)} outliers from {testid} n={n}", "yellow"))
             print(colorize(f"  Raw values: {raw_values}", "gray"))
-            print(colorize(f"  Removed values: {removed}", "gray"))
+            print(colorize(f"  Removed values: {removed[::-1]}", "gray"))
 
-        complexity = complexity_fn(n)
-        mean_c = mean / complexity
-        stddev_c = stddev / complexity
+        removed = set(map(lambda x: x[1], removed))
 
-        stats.append(
-            {
-                "n": n,
-                "mean": mean,
-                "stddev": stddev,
-                "mean_c": mean_c,
-                "stddev_c": stddev_c,
-                "min_c": min(values) / complexity,
-                "max_c": max(values) / complexity,
-                "samples": len(values),
-                "min": min(values),
-                "max": max(values),
-                "complexity": complexity,
-                "raw_values": raw_values,
-            }
-        )
+        filtered_data = []
+        for idx, entry in enumerate(raw_data):
+            if idx not in removed:
+                filtered_data.append(entry)
 
-    maxc = 0
-    for sample in stats:
-        if test["practical_lower_bound"] <= sample["n"] <= test["practical_upper_bound"]:
-            maxc = max(maxc, sample["mean"] / complexity_fn(sample["n"]))
+        stat_entry["samples"] = len(values)
 
-    test["max_c"] = maxc
+        for metric in all_metrics:
+            # Calculate statistics
+
+            v = []
+            for entry in filtered_data:
+                if metric in entry:
+                    v.append(entry[metric])
+
+            mean = sum(v) / len(v)
+            stddev = math.sqrt(sum((x - mean) ** 2 for x in v) / (len(v) - 1)) if len(v) > 1 else 0
+
+            # Store raw statistics
+            stat_entry[f"{metric}_mean"] = mean
+            stat_entry[f"{metric}_stddev"] = stddev
+            stat_entry[f"{metric}_min"] = min(v)
+            stat_entry[f"{metric}_max"] = max(v)
+
+            # For timing data, also store complexity-normalized v
+            if metric == "time_ns":
+                complexity = complexity_fn(n)
+                stat_entry["constant_mean"] = mean / complexity
+                stat_entry["constant_stddev"] = stddev / complexity
+                stat_entry["constant_min"] = min(v) / complexity
+                stat_entry["constant_max"] = max(v) / complexity
+
+        stats.append(stat_entry)
+
+    constant_max = max(map(lambda x: x["constant_mean"], stats))
+    test["constant_max"] = constant_max
     test["stats"] = stats
     del test["data"]
     return test
 
 
-def run_source(source, profile, dry_run=False, process_priority=None, cpu_affinity=None):
+def run_source(source, profile):
+    global dry_run, process_priority, cpu_affinity
     global tests
 
     ret = {}
@@ -362,35 +430,22 @@ def run_source(source, profile, dry_run=False, process_priority=None, cpu_affini
                                 fake_input += f"{input_data['defs']['BENCHMARK_N']} "
                             else:
                                 fake_input += f"{random.randint(1000, 100000)} "
-                        ret[testid]["data"].append(
-                            handle_simple_test(
-                                testid,
-                                test,
-                                fake_input,
-                                input_data,
-                            )
-                        )
+                        ret[testid]["data"].append(handle_simple_test(testid, test, fake_input, input_data))
         else:
             output_path = compile_source(
                 source,
                 profile,
                 input_data.get("defs", {}),
-                process_priority=process_priority,
-                cpu_affinity=cpu_affinity,
             )
             for repeat in range(source["repeats"]):
-                p = subprocess.run(
-                    output_path,
-                    check=True,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                )
-                print(colorize(p.stdout.decode().strip(), "gray"))
-                if p.returncode != 0:
+                stdout, stderr = execute_source(output_path)
+                if verbose:
+                    print(colorize(stdout.decode().strip(), "gray"))
+                if stderr:
                     print(colorize(f"Error running {source['path']} with input {input_data}:", "red"))
-                    print(colorize(p.stderr.decode().strip(), "red"))
+                    print(colorize(stderr.decode().strip(), "red"))
                     exit(1)
-                for line in p.stdout.decode().splitlines():
+                for line in stdout.decode().splitlines():
                     testid = line.split(":")[0].strip()
                     test = tests[testid]
                     if testid not in ret:
@@ -453,17 +508,8 @@ def hash_obj(obj):
     return hashlib.md5(json.dumps(obj, sort_keys=True).encode()).hexdigest()
 
 
-def run(
-    profile,
-    source_path,
-    output_file,
-    rerun=False,
-    dry_run=False,
-    process_priority=None,
-    cpu_affinity=None,
-    test_filter=None,
-    comment_file=None,
-):
+def run(profile, source_path, output_file):
+    global rerun, test_filter, comment_file
     global tsc_freq
     if os.path.exists("tsc_freq.txt"):
         tsc_freq = float(open("tsc_freq.txt", "r").read().strip())
@@ -556,15 +602,7 @@ def run(
             if source["path"] in unused_sources:
                 print(colorize(f"Skipping {source['path']} as it is unused.", "yellow"))
                 continue
-            results.update(
-                run_source(
-                    source,
-                    profile,
-                    dry_run=dry_run,
-                    process_priority=process_priority,
-                    cpu_affinity=cpu_affinity,
-                )
-            )
+            results.update(run_source(source, profile))
             for k in source["tests"]:
                 if k in results:
                     v = results[k]
@@ -641,20 +679,31 @@ def main():
     parser.add_argument(
         "-c", "--comment-file", type=str, help="Comment file to add to results", required=False, default="comment.txt"
     )
+    parser.add_argument(
+        "--verbose", "-v", action="store_true", help="Enable verbose output for debugging", required=False, default=False
+    )
     args = parser.parse_args()
 
     if args.list_profiles:
         print("Available profiles:")
         for k, v in profiles.items():
-            print("  {k}: {v['name']}", "yellow")
+            print(colorize(f"  {k}: {v['name']}", "yellow"))
         exit(0)
 
+    global rerun, dry_run, process_priority, cpu_affinity, test_filter, comment_file, verbose
+
+    rerun = args.rerun
+    dry_run = args.dry_run
     if args.realtime_priority:
         process_priority = 99
     elif args.high_priority:
         process_priority = 20
     else:
         process_priority = None
+    cpu_affinity = args.pin
+    test_filter = args.test_filter
+    comment_file = args.comment_file
+    verbose = args.verbose
 
     if args.all_profiles:
         if not args.output:
@@ -673,17 +722,7 @@ def main():
         for profile_name, profile in profiles.items():
             output_file = os.path.join(args.output, f"{args.device}_{profile_name.replace(' ', '_')}.json")
             print()
-            run(
-                profile,
-                "benchmarks",
-                output_file,
-                rerun=args.rerun,
-                dry_run=args.dry_run,
-                process_priority=process_priority,
-                cpu_affinity=args.pin,
-                test_filter=args.test_filter,
-                comment_file=args.comment_file,
-            )
+            run(profile, "benchmarks", output_file)
             results_index = [entry for entry in results_index if entry["path"] != output_file]
             results_index.append({"name": f"{args.device} {profile_name}", "path": output_file})
             results_index.sort(key=lambda x: x["name"])
@@ -700,17 +739,7 @@ def main():
             profile = profiles[args.profile]
         else:
             profile = next(iter(profiles.values()))
-        run(
-            profile,
-            args.source,
-            args.output,
-            rerun=args.rerun,
-            dry_run=args.dry_run,
-            process_priority=process_priority,
-            cpu_affinity=args.pin,
-            test_filter=args.test_filter,
-            comment_file=args.comment_file,
-        )
+        run(profile, args.source, args.output)
 
 
 if __name__ == "__main__":
