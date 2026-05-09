@@ -461,6 +461,8 @@ def process_simple_test(testid, test):
 
 
 def run_source(source, profile):
+    print(colorize(f"Running source: {source['path']}", "yellow"))
+
     global dry_run, process_priority, cpu_affinity
     global tests
 
