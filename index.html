@@ -110,20 +110,24 @@
           <div class="field" style="margin-bottom: 1em">
             <label for="metricSelect">Metric</label>
             <select id="metricSelect" class="ui fluid dropdown" onchange="refresh()">
-              <option value="time_ns">Time (ns)</option>
+              <option value="time">Time (ns)</option>
+              <option value="time_clock">System Time (ns)</option>
+              <option value="time_tsc">TSC Time (ns)</option>
               <option value="constant">Constant</option>
-              <option value="cpu_cycles">CPU cycles</option>
-              <option value="instructions">Instructions</option>
-              <option value="ipc">IPC</option>
+              <option value="branch_miss_rate">Branch miss rate</option>
+              <option value="l1i_cache_miss_rate">L1i cache miss rate</option>
+              <option value="l1d_cache_miss_rate">L1d cache miss rate</option>
+              <option value="llc_cache_miss_rate">LLC cache miss rate</option>
               <option value="branches">Branches</option>
               <option value="branch_misses">Branch misses</option>
-              <option value="branch_miss_rate">Branch miss rate</option>
-              <option value="cache_references">Cache references</option>
-              <option value="cache_misses">Cache misses</option>
-              <option value="cache_miss_rate">Cache miss rate</option>
-              <option value="l1_dcache_loads">L1d Cache loads</option>
-              <option value="l1_dcache_load_misses">L1d Cache load misses</option>
-              <option value="l1_dcache_miss_rate">L1d Cache miss rate</option>
+              <option value="context_switches">Context switches</option>
+              <option value="page_faults">Page faults</option>
+              <option value="l1i_cache_references">L1i cache references</option>
+              <option value="l1i_cache_misses">L1i cache misses</option>
+              <option value="l1d_cache_references">L1d cache references</option>
+              <option value="l1d_cache_misses">L1d cache misses</option>
+              <option value="llc_cache_references">LLC cache references</option>
+              <option value="llc_cache_misses">LLC cache misses</option>
             </select>
           </div>
           <div class="ui toggle checkbox" style="margin-bottom: 1em">

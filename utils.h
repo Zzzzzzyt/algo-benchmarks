@@ -1,6 +1,9 @@
 // The following macros are taken from https://github.com/google/benchmark
 // from the file include/benchmark/benchmark.h
 
+#include <cmath>
+#include <cstdio>
+#include <cstring>
 #include <type_traits>
 
 // Used to annotate functions, methods and classes so they
@@ -196,8 +199,205 @@ inline BENCHMARK_ALWAYS_INLINE ull get_tsc() {
 #define BENCHMARK_TSC_FREQ 3.0e9
 #endif
 
-double tsc_to_ns(ull tsc) {
+inline double tsc_to_ns(ull tsc) {
     return (double)tsc / (BENCHMARK_TSC_FREQ);
+}
+
+#include <asm/unistd.h>
+#include <linux/perf_event.h>
+#include <sys/ioctl.h>
+#include <sys/syscall.h>
+#include <unistd.h>
+
+struct measurement_counters_t {
+    double cpu_cycles;
+    double stalled_cycles_frontend;
+    double branches;
+    double branch_misses;
+    double context_switches;
+    double page_faults;
+    double l1i_cache_references;
+    double l1i_cache_misses;
+    double l1d_cache_references;
+    double l1d_cache_misses;
+    double llc_cache_references;
+    double llc_cache_misses;
+};
+
+enum perf_counter_index_t {
+    PERF_IDX_BRANCHES = 0,
+    PERF_IDX_BRANCH_MISSES,
+    PERF_IDX_CONTEXT_SWITCHES,
+    PERF_IDX_PAGE_FAULTS,
+    PERF_IDX_L1I_CACHE_REFERENCES,
+    PERF_IDX_L1I_CACHE_MISSES,
+    PERF_IDX_L1D_CACHE_REFERENCES,
+    PERF_IDX_L1D_CACHE_MISSES,
+    PERF_IDX_LLC_CACHE_REFERENCES,
+    PERF_IDX_LLC_CACHE_MISSES,
+    PERF_IDX_COUNT
+};
+
+struct measurement_handle_t {
+    ull system_time_clock;
+    ull tsc_time;
+    int fds[PERF_IDX_COUNT];
+};
+
+inline int perf_event_open_wrapper(struct perf_event_attr *attr, pid_t pid, int cpu, int group_fd, unsigned long flags) {
+    return (int)syscall(__NR_perf_event_open, attr, pid, cpu, group_fd, flags);
+}
+
+int open_perf_event(__u32 type, __u64 config, bool exclude_kernel) {
+    struct perf_event_attr attr;
+    memset(&attr, 0, sizeof(attr));
+    attr.type = type;
+    attr.size = sizeof(attr);
+    attr.config = config;
+    attr.disabled = 1;
+    attr.read_format = PERF_FORMAT_TOTAL_TIME_ENABLED | PERF_FORMAT_TOTAL_TIME_RUNNING;
+    attr.exclude_kernel = exclude_kernel ? 1 : 0;
+    attr.exclude_hv = exclude_kernel ? 1 : 0;
+    attr.inherit = 0;
+    return perf_event_open_wrapper(&attr, 0, -1, -1, 0);
+}
+
+double read_perf_counter(int fd) {
+    // struct read_format {
+    //     u64 value;         /* The value of the event */
+    //     u64 time_enabled;  /* if PERF_FORMAT_TOTAL_TIME_ENABLED */
+    //     u64 time_running;  /* if PERF_FORMAT_TOTAL_TIME_RUNNING */
+    //     u64 id;            /* if PERF_FORMAT_ID */
+    //     u64 lost;          /* if PERF_FORMAT_LOST */
+    // };
+
+    if (fd < 0) {
+        return 0.0;
+    }
+
+    struct {
+        __u64 value;
+        __u64 time_enabled;
+        __u64 time_running;
+    } buf;
+
+    size_t sz = read(fd, &buf, sizeof(buf));
+    if (sz != sizeof(buf)) {
+        return 0.0;
+    }
+    return (double)buf.value * ((double)buf.time_enabled / buf.time_running);
+}
+
+inline measurement_counters_t read_measurement_counters(measurement_handle_t handle) {
+    measurement_counters_t counters;
+    double buf[2];
+
+    counters.branches = read_perf_counter(handle.fds[PERF_IDX_BRANCHES]);
+    counters.branch_misses = read_perf_counter(handle.fds[PERF_IDX_BRANCH_MISSES]);
+    counters.context_switches = read_perf_counter(handle.fds[PERF_IDX_CONTEXT_SWITCHES]);
+    counters.page_faults = read_perf_counter(handle.fds[PERF_IDX_PAGE_FAULTS]);
+    counters.l1i_cache_references = read_perf_counter(handle.fds[PERF_IDX_L1I_CACHE_REFERENCES]);
+    counters.l1i_cache_misses = read_perf_counter(handle.fds[PERF_IDX_L1I_CACHE_MISSES]);
+    counters.l1d_cache_references = read_perf_counter(handle.fds[PERF_IDX_L1D_CACHE_REFERENCES]);
+    counters.l1d_cache_misses = read_perf_counter(handle.fds[PERF_IDX_L1D_CACHE_MISSES]);
+    counters.llc_cache_references = read_perf_counter(handle.fds[PERF_IDX_LLC_CACHE_REFERENCES]);
+    counters.llc_cache_misses = read_perf_counter(handle.fds[PERF_IDX_LLC_CACHE_MISSES]);
+
+    return counters;
+}
+
+inline BENCHMARK_ALWAYS_INLINE measurement_handle_t start_measurement() {
+    measurement_handle_t handle;
+
+    handle.fds[PERF_IDX_BRANCHES] = open_perf_event(PERF_TYPE_HARDWARE, PERF_COUNT_HW_BRANCH_INSTRUCTIONS, true);
+    handle.fds[PERF_IDX_BRANCH_MISSES] = open_perf_event(PERF_TYPE_HARDWARE, PERF_COUNT_HW_BRANCH_MISSES, true);
+
+    handle.fds[PERF_IDX_CONTEXT_SWITCHES] = open_perf_event(PERF_TYPE_SOFTWARE, PERF_COUNT_SW_CONTEXT_SWITCHES, false);
+    handle.fds[PERF_IDX_PAGE_FAULTS] = open_perf_event(PERF_TYPE_SOFTWARE, PERF_COUNT_SW_PAGE_FAULTS, false);
+
+    handle.fds[PERF_IDX_L1I_CACHE_REFERENCES] = open_perf_event(
+        PERF_TYPE_HW_CACHE,
+        PERF_COUNT_HW_CACHE_L1I | (PERF_COUNT_HW_CACHE_OP_READ << 8) |
+            (PERF_COUNT_HW_CACHE_RESULT_ACCESS << 16),
+        true);
+    handle.fds[PERF_IDX_L1I_CACHE_MISSES] = open_perf_event(
+        PERF_TYPE_HW_CACHE,
+        PERF_COUNT_HW_CACHE_L1I | (PERF_COUNT_HW_CACHE_OP_READ << 8) |
+            (PERF_COUNT_HW_CACHE_RESULT_MISS << 16),
+        true);
+
+    handle.fds[PERF_IDX_L1D_CACHE_REFERENCES] = open_perf_event(
+        PERF_TYPE_HW_CACHE,
+        PERF_COUNT_HW_CACHE_L1D | (PERF_COUNT_HW_CACHE_OP_READ << 8) |
+            (PERF_COUNT_HW_CACHE_RESULT_ACCESS << 16),
+        true);
+    handle.fds[PERF_IDX_L1D_CACHE_MISSES] = open_perf_event(
+        PERF_TYPE_HW_CACHE,
+        PERF_COUNT_HW_CACHE_L1D | (PERF_COUNT_HW_CACHE_OP_READ << 8) |
+            (PERF_COUNT_HW_CACHE_RESULT_MISS << 16),
+        true);
+
+    handle.fds[PERF_IDX_LLC_CACHE_REFERENCES] = open_perf_event(
+        PERF_TYPE_HW_CACHE,
+        PERF_COUNT_HW_CACHE_LL | (PERF_COUNT_HW_CACHE_OP_READ << 8) |
+            (PERF_COUNT_HW_CACHE_RESULT_ACCESS << 16),
+        true);
+    handle.fds[PERF_IDX_LLC_CACHE_MISSES] = open_perf_event(
+        PERF_TYPE_HW_CACHE,
+        PERF_COUNT_HW_CACHE_LL | (PERF_COUNT_HW_CACHE_OP_READ << 8) |
+            (PERF_COUNT_HW_CACHE_RESULT_MISS << 16),
+        true);
+
+    for (int i = 0; i < PERF_IDX_COUNT; ++i) {
+        if (handle.fds[i] >= 0) {
+            ioctl(handle.fds[i], PERF_EVENT_IOC_RESET, 0);
+        }
+    }
+
+    for (int i = 0; i < PERF_IDX_COUNT; ++i) {
+        if (handle.fds[i] >= 0) {
+            ioctl(handle.fds[i], PERF_EVENT_IOC_ENABLE, 0);
+        }
+    }
+
+    handle.system_time_clock = get_monotonic_time();
+    handle.tsc_time = get_tsc();
+    return handle;
+}
+
+inline BENCHMARK_ALWAYS_INLINE void end_measurement(const measurement_handle_t &handle, const char *test_name, int micro_repeats) {
+    ull end_tsc = get_tsc();
+    ull end_system_time = get_monotonic_time();
+
+    for (int i = 0; i < PERF_IDX_COUNT; ++i) {
+        ioctl(handle.fds[i], PERF_EVENT_IOC_DISABLE, 0);
+    }
+
+    ull elapsed_clock_ns = end_system_time - handle.system_time_clock;
+    double elapsed_tsc_ns = tsc_to_ns(end_tsc - handle.tsc_time);
+
+    if (micro_repeats <= 0) {
+        micro_repeats = 1;
+    }
+
+    measurement_counters_t c = read_measurement_counters(handle);
+    std::printf(
+        "%s:\t%llu %d %llu %.17g %.17g %.17g %.17g %.17g %.17g %.17g %.17g %.17g %.17g %.17g\n",
+        test_name,
+        (ull)BENCHMARK_N,
+        micro_repeats,
+        elapsed_clock_ns,
+        elapsed_tsc_ns,
+        c.branches,
+        c.branch_misses,
+        c.context_switches,
+        c.page_faults,
+        c.l1i_cache_references,
+        c.l1i_cache_misses,
+        c.l1d_cache_references,
+        c.l1d_cache_misses,
+        c.llc_cache_references,
+        c.llc_cache_misses);
 }
 
 #ifdef BENCHMARK_PROCESS_PRIORITY

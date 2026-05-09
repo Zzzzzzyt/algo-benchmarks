@@ -203,6 +203,7 @@ def generator(
         if n < lower_bound or n > upper_bound:
             continue
         if micro_repeats:
+            assert complexity_fn
             micro_repeats = max(1, min(max_repeats, math.ceil(min_runtime / complexity_fn(n) / estimated_constant)))
             ret.append(
                 {
@@ -214,6 +215,29 @@ def generator(
             )
         else:
             ret.append({"defs": {"BENCHMARK_N": n}})
+    return ret
+
+
+def expand_test_template(template):
+    ret = []
+    for key in template:
+        if key == "<perf>":
+            ret.extend(
+                [
+                    "branches",
+                    "branch_misses",
+                    "context_switches",
+                    "page_faults",
+                    "l1i_cache_references",
+                    "l1i_cache_misses",
+                    "l1d_cache_references",
+                    "l1d_cache_misses",
+                    "llc_cache_references",
+                    "llc_cache_misses",
+                ]
+            )
+        else:
+            ret.append(key)
     return ret
 
 
@@ -280,29 +304,63 @@ def process_simple_test(testid, test):
     all_metrics = set()
 
     for entry in test["data"]:
+        use_tsc = "time_tsc" in entry and entry["time_clock"] < 10000 and entry["time_tsc"] > 0
+
         n = entry["n"]
         if n not in organized_data:
             organized_data[n] = []
 
         # Process micro repeats
         if "micro_repeats" in entry:
-            entry["time_ns"] /= entry["micro_repeats"]
-            if "branches" in entry:
-                entry["branch_miss_rate"] = entry["branch_misses"] / max(entry["branches"], 1)
-                entry["branch_misses"] /= entry["micro_repeats"]
-                entry["branches"] /= entry["micro_repeats"]
-            if "cpu_cycles" in entry:
-                entry["ipc"] = entry["instructions"] / max(entry["cpu_cycles"], 1)
-                entry["instructions"] /= entry["micro_repeats"]
-                entry["cpu_cycles"] /= entry["micro_repeats"]
-            if "cache_references" in entry:
-                entry["cache_miss_rate"] = entry["cache_misses"] / max(entry["cache_references"], 1)
-                entry["cache_misses"] /= entry["micro_repeats"]
-                entry["cache_references"] /= entry["micro_repeats"]
-            if "L1-dcache-loads" in entry:
-                entry["l1_dcache_miss_rate"] = entry["l1_dcache_load_misses"] / max(entry["l1_dcache_loads"], 1)
-                entry["l1_dcache_load_misses"] /= entry["micro_repeats"]
-                entry["l1_dcache_loads"] /= entry["micro_repeats"]
+            mr = max(entry["micro_repeats"], 1)
+            if "time_clock" in entry:
+                entry["time_clock"] /= mr
+            if "time_tsc" in entry:
+                entry["time_tsc"] /= mr
+
+            # Per-repeat perf counters
+            perf_counter_fields = [
+                "cpu_cycles",
+                "instructions",
+                "stalled_cycles_frontend",
+                "branches",
+                "branch_misses",
+                "context_switches",
+                "page_faults",
+                "cache_references",
+                "cache_misses",
+                "l1_dcache_loads",
+                "l1_dcache_load_misses",
+                "l1i_cache_references",
+                "l1i_cache_misses",
+                "l1d_cache_references",
+                "l1d_cache_misses",
+                "llc_cache_references",
+                "llc_cache_misses",
+            ]
+            for field in perf_counter_fields:
+                if field in entry:
+                    entry[field] /= mr
+
+        # Derived metrics
+        if "stalled_cycles_frontend" in entry and "cpu_cycles" in entry:
+            entry["frontend_stall_rate"] = entry["stalled_cycles_frontend"] / max(entry["cpu_cycles"], 1)
+        if "branches" in entry and "branch_misses" in entry:
+            entry["branch_miss_rate"] = entry["branch_misses"] / max(entry["branches"], 1)
+        if "cpu_cycles" in entry and "instructions" in entry:
+            entry["ipc"] = entry["instructions"] / max(entry["cpu_cycles"], 1)
+        if "cache_references" in entry and "cache_misses" in entry:
+            entry["cache_miss_rate"] = entry["cache_misses"] / max(entry["cache_references"], 1)
+        if "l1_dcache_loads" in entry and "l1_dcache_load_misses" in entry:
+            entry["l1_dcache_miss_rate"] = entry["l1_dcache_load_misses"] / max(entry["l1_dcache_loads"], 1)
+        if "l1i_cache_references" in entry and "l1i_cache_misses" in entry:
+            entry["l1i_cache_miss_rate"] = entry["l1i_cache_misses"] / max(entry["l1i_cache_references"], 1)
+        if "l1d_cache_references" in entry and "l1d_cache_misses" in entry:
+            entry["l1d_cache_miss_rate"] = entry["l1d_cache_misses"] / max(entry["l1d_cache_references"], 1)
+        if "llc_cache_references" in entry and "llc_cache_misses" in entry:
+            entry["llc_cache_miss_rate"] = entry["llc_cache_misses"] / max(entry["llc_cache_references"], 1)
+
+        entry["time"] = entry["time_tsc"] if use_tsc else entry["time_clock"]
 
         organized_data[n].append(entry)
 
@@ -327,7 +385,7 @@ def process_simple_test(testid, test):
         # Process each metric
         values = []
         for idx, entry in enumerate(raw_data):
-            values.append((entry["time_ns"], idx))
+            values.append((entry["time"], idx))
         values.sort()
         raw_values = values.copy()
 
@@ -386,7 +444,7 @@ def process_simple_test(testid, test):
             stat_entry[f"{metric}_max"] = max(v)
 
             # For timing data, also store complexity-normalized v
-            if metric == "time_ns":
+            if metric == "time_clock":
                 complexity = complexity_fn(n)
                 stat_entry["constant_mean"] = mean / complexity
                 stat_entry["constant_stddev"] = stddev / complexity
@@ -556,6 +614,7 @@ def run(profile, source_path, output_file):
         for testid, test in cfg["tests"].items():
             if test_filter and (re.match(test_filter, testid) is None):
                 continue
+            test["template"] = expand_test_template(test["template"])
             test["source_files"] = source_files
             test["source_hash"] = source_hash
             test["test_hash"] = hash_obj(test)

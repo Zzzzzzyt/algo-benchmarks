@@ -174,12 +174,12 @@ function buildTree(results) {
 }
 
 function getMetricAccessors(metric) {
-  if (metric === "time_ns") {
+  if (metric === "time_clock") {
     return {
-      meanKeys: ["time_ns_mean", "mean"],
-      stdKeys: ["time_ns_stddev", "stddev"],
-      minKeys: ["time_ns_min", "min"],
-      maxKeys: ["time_ns_max", "max"],
+      meanKeys: ["time_clock_mean", "mean"],
+      stdKeys: ["time_clock_stddev", "stddev"],
+      minKeys: ["time_clock_min", "min"],
+      maxKeys: ["time_clock_max", "max"],
     };
   }
   if (metric === "constant") {
@@ -213,8 +213,7 @@ function getFirstFiniteValue(obj, keys) {
 function showOverlayPlot(resultsArr, keysArr) {
   const plotDiv = document.getElementById("plot");
   const detailsDiv = document.getElementById("details");
-  const metric = document.getElementById("metricSelect")?.value || "time_ns";
-  const use_c = metric === "constant";
+  const metric = document.getElementById("metricSelect")?.value || "time_clock";
   if (!resultsArr.length) {
     plotDiv.innerHTML = "";
     detailsDiv.style.display = "none";
@@ -227,7 +226,7 @@ function showOverlayPlot(resultsArr, keysArr) {
   const showLines = document.getElementById("linesToggle")?.checked;
   const showMinMax = document.getElementById("minmaxToggle")?.checked;
   const logRegex = /O\((log n|logn)\)/i;
-  if (use_c || metric !== "time_ns") {
+  if (metric === "constant" || /rate/i.test(metric)) {
     yType = "linear";
   } else if (resultsArr.length > 0) {
     const allLogLinear = resultsArr.every((r) => logRegex.test(r.complexity));
@@ -306,7 +305,7 @@ function showOverlayPlot(resultsArr, keysArr) {
   });
 
   const metricLabel = document.querySelector(`#metricSelect option[value="${metric}"]`)?.textContent || metric;
-  const yTitle = use_c ? "Time / Complexity" : metricLabel;
+  const yTitle = metricLabel;
   const plotLayout = {
     title: keysArr.join(" + "),
     xaxis: { title: "Input size (n)", type: xType },

@@ -12,14 +12,12 @@ int main(int argc, char *argv[]) {
         a[i] = 'a';
     a[BENCHMARK_N - 1] = '\0';
 
-    ull st1 = get_cpu_time();
+    measurement_handle_t st1 = start_measurement();
     for (int i = 0; i < BENCHMARK_MICRO_REPEATS; ++i) {
         volatile size_t len = strlen(a);
         DoNotOptimize(len);
     }
-    ull et1 = get_cpu_time();
-
-    printf("misc.strlen:\t%d %d %llu\n", BENCHMARK_N, BENCHMARK_MICRO_REPEATS, et1 - st1);
+    end_measurement(st1, "misc.strlen", BENCHMARK_MICRO_REPEATS);
 
     return 0;
 }

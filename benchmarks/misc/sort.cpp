@@ -11,37 +11,31 @@ int main(int argc, char *argv[]) {
         a[i] = i;
     }
 
-    ull st1 = get_cpu_time();
+    measurement_handle_t st1 = start_measurement();
     std::sort(a, a + BENCHMARK_N);
-    ull et1 = get_cpu_time();
 
     DoNotOptimize(a[0]);
-
-    printf("misc.sort.int_sorted:\t%d %llu\n", BENCHMARK_N, et1 - st1);
+    end_measurement(st1, "misc.sort.int_sorted", 1);
 
     for (int i = 0; i < BENCHMARK_N; i++) {
         a[i] = BENCHMARK_N - i;
     }
 
-    ull st2 = get_cpu_time();
+    measurement_handle_t st2 = start_measurement();
     std::sort(a, a + BENCHMARK_N);
-    ull et2 = get_cpu_time();
 
     DoNotOptimize(a[0]);
-
-    printf("misc.sort.int_reversed:\t%d %llu\n", BENCHMARK_N, et2 - st2);
+    end_measurement(st2, "misc.sort.int_reversed", 1);
 
     for (int i = 0; i < BENCHMARK_N; i++) {
         a[i] = rng();
     }
 
-    ull st3 = get_cpu_time();
+    measurement_handle_t st3 = start_measurement();
     std::sort(a, a + BENCHMARK_N);
-    ull et3 = get_cpu_time();
 
     DoNotOptimize(a[0]);
-
-    printf("misc.sort.int_random:\t%d %llu\n", BENCHMARK_N, et3 - st3);
+    end_measurement(st3, "misc.sort.int_random", 1);
 
     return 0;
 }

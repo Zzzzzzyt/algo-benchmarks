@@ -12,13 +12,11 @@ int main(int argc, char *argv[]) {
         a[i] = std::make_pair(rng(), rng());
     }
 
-    ull st = get_cpu_time();
+    measurement_handle_t st = start_measurement();
     std::sort(a, a + BENCHMARK_N);
-    ull et = get_cpu_time();
 
     DoNotOptimize(a[0]);
-
-    printf("misc.sort.pii_random:\t%d %llu\n", BENCHMARK_N, et - st);
+    end_measurement(st, "misc.sort.pii_random", 1);
 
     return 0;
 }
