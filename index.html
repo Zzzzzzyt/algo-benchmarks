@@ -66,6 +66,15 @@
       .ui.styled.accordion {
         width: initial;
       }
+      .axis-scale-group {
+        margin-bottom: 1em;
+      }
+      .axis-scale-group .ui.buttons {
+        width: 100%;
+      }
+      .axis-scale-group .ui.button {
+        width: 50%;
+      }
     </style>
   </head>
   <body>
@@ -109,7 +118,7 @@
         <div class="four wide column">
           <div class="field" style="margin-bottom: 1em">
             <label for="metricSelect">Metric</label>
-            <select id="metricSelect" class="ui fluid dropdown" onchange="refresh()">
+            <select id="metricSelect" class="ui fluid dropdown">
               <option value="time">Time (ns)</option>
               <option value="time_clock">System Time (ns)</option>
               <option value="time_tsc">TSC Time (ns)</option>
@@ -129,6 +138,28 @@
               <option value="llc_cache_references">LLC cache references</option>
               <option value="llc_cache_misses">LLC cache misses</option>
             </select>
+          </div>
+          <div class="field axis-scale-group">
+            <label>X Axis Scale</label>
+            <div class="ui tiny buttons">
+              <button type="button" class="ui button axis-scale-button" data-axis="x" data-scale="linear">
+                Linear
+              </button>
+              <button type="button" class="ui button axis-scale-button active" data-axis="x" data-scale="log">
+                Log
+              </button>
+            </div>
+          </div>
+          <div class="field axis-scale-group">
+            <label>Y Axis Scale</label>
+            <div class="ui tiny buttons">
+              <button type="button" class="ui button axis-scale-button" data-axis="y" data-scale="linear">
+                Linear
+              </button>
+              <button type="button" class="ui button axis-scale-button active" data-axis="y" data-scale="log">
+                Log
+              </button>
+            </div>
           </div>
           <div class="ui toggle checkbox" style="margin-bottom: 1em">
             <input type="checkbox" id="linesToggle" onchange="refresh()" />

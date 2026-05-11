@@ -44,8 +44,24 @@ function populateProfileDropdown(profiles) {
 
   dropdown.querySelector(".default.text").textContent = "Select a profile";
   if (document.getElementById("metricSelect")) {
-    $("#metricSelect").dropdown();
+    $("#metricSelect").dropdown({
+      onChange: function () {
+        onMetricChange();
+      },
+    });
   }
+}
+
+function getSelectedEntries() {
+  const tree = document.getElementById("tree");
+  if (!tree || !window._resultsData) {
+    return [];
+  }
+
+  return Array.from(tree.querySelectorAll("input[type=checkbox]:checked"))
+    .map((checkbox) => checkbox.id.replace("data-key-", ""))
+    .map((key) => ({ key, result: window._resultsData[key] }))
+    .filter((entry) => Boolean(entry.result));
 }
 
 function loadProfile(path, name) {
@@ -60,6 +76,7 @@ function loadProfile(path, name) {
       const dropdown = document.getElementById("profileDropdown");
       dropdown.querySelector(".text").textContent = name;
 
+      updateAxisScaleControls();
       refresh();
     })
     .catch((err) => {
@@ -210,6 +227,58 @@ function getFirstFiniteValue(obj, keys) {
   return undefined;
 }
 
+function getDefaultAxisTypes(metric, resultsArr) {
+  let xType = "log";
+  let yType = "log";
+  const logRegex = /O\((log n|logn)\)/i;
+
+  if (metric === "constant" || /rate/i.test(metric)) {
+    yType = "linear";
+  } else if (resultsArr.length > 0) {
+    const allLogLinear = resultsArr.every((result) => logRegex.test(result.complexity));
+    if (allLogLinear) {
+      yType = "linear";
+    }
+  }
+
+  return { xType, yType };
+}
+
+function setAxisScale(axis, scale) {
+  const buttons = document.querySelectorAll(`.axis-scale-button[data-axis="${axis}"]`);
+  buttons.forEach((button) => {
+    const isActive = button.dataset.scale === scale;
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-pressed", isActive ? "true" : "false");
+  });
+}
+
+function getAxisScale(axis) {
+  const activeButton = document.querySelector(`.axis-scale-button.active[data-axis="${axis}"]`);
+  return activeButton?.dataset.scale || "log";
+}
+
+function updateAxisScaleControls(metric = document.getElementById("metricSelect")?.value || "time_clock") {
+  const selectedResults = getSelectedEntries().map((entry) => entry.result);
+  const { xType, yType } = getDefaultAxisTypes(metric, selectedResults);
+  setAxisScale("x", xType);
+  setAxisScale("y", yType);
+}
+
+function onMetricChange() {
+  updateAxisScaleControls();
+  refresh();
+}
+
+function initializeAxisScaleControls() {
+  document.querySelectorAll(".axis-scale-button").forEach((button) => {
+    button.addEventListener("click", () => {
+      setAxisScale(button.dataset.axis, button.dataset.scale);
+      refresh();
+    });
+  });
+}
+
 function showOverlayPlot(resultsArr, keysArr) {
   const plotDiv = document.getElementById("plot");
   const detailsDiv = document.getElementById("details");
@@ -220,20 +289,10 @@ function showOverlayPlot(resultsArr, keysArr) {
     return;
   }
 
-  let xType = "log";
-  let yType = "log";
-
+  const xType = getAxisScale("x");
+  const yType = getAxisScale("y");
   const showLines = document.getElementById("linesToggle")?.checked;
   const showMinMax = document.getElementById("minmaxToggle")?.checked;
-  const logRegex = /O\((log n|logn)\)/i;
-  if (metric === "constant" || /rate/i.test(metric)) {
-    yType = "linear";
-  } else if (resultsArr.length > 0) {
-    const allLogLinear = resultsArr.every((r) => logRegex.test(r.complexity));
-    if (allLogLinear) {
-      yType = "linear";
-    }
-  }
 
   const traces = [];
   const colorScheme = [
@@ -336,16 +395,8 @@ function showOverlayPlot(resultsArr, keysArr) {
 }
 
 function refresh() {
-  const tree = document.getElementById("tree");
-  if (!tree) {
-    return;
-  }
-  const checked = Array.from(tree.querySelectorAll("input[type=checkbox]:checked"));
-  const selectedKeys = checked.map((c) => c.id.replace("data-key-", ""));
   if (window._resultsData) {
-    const selectedEntries = selectedKeys
-      .map((k) => ({ key: k, result: window._resultsData[k] }))
-      .filter((entry) => Boolean(entry.result));
+    const selectedEntries = getSelectedEntries();
     showOverlayPlot(
       selectedEntries.map((entry) => entry.result),
       selectedEntries.map((entry) => entry.key)
@@ -364,3 +415,5 @@ function htmlEscape(str) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
+
+initializeAxisScaleControls();
