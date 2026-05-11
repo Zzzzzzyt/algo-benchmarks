@@ -1,0 +1,44 @@
+{
+  "tests": {
+    "container.set.int_random_insert": {
+      "type": "simple",
+      "complexity": "O(nlogn)",
+      "practical_lower_bound": 100,
+      "practical_upper_bound": 1000000,
+      "template": ["n", "micro_repeats", "time_clock", "time_tsc", "<perf>"],
+      "description_en": "Cost of one std::set<int>::insert with a unique int element, measured over N insert operations. Elements are inserted in random order.",
+      "description_zh": "std::set<int>::insert 插入唯一 int 元素的单次开销，基于 N 次插入操作测量。元素以随机顺序插入。"
+    },
+    "container.set.int_random_find_hit": {
+      "type": "simple",
+      "complexity": "O(nlogn)",
+      "practical_lower_bound": 100,
+      "practical_upper_bound": 1000000,
+      "template": ["n", "micro_repeats", "time_clock", "time_tsc", "<perf>"],
+      "description_en": "Cost of one successful std::set<int>::find on a container of size N, measured over N lookups. Elements are looked up in random order.",
+      "description_zh": "大小为 N 的 std::set<int> 上单次成功 find 查询的开销，基于 N 次查找测量。元素以随机顺序查找。"
+    },
+    "container.set.int_iteration": {
+      "type": "simple",
+      "complexity": "O(n)",
+      "practical_lower_bound": 100,
+      "practical_upper_bound": 1000000,
+      "template": ["n", "micro_repeats", "time_clock", "time_tsc", "<perf>"],
+      "description_en": "Per-element iteration cost for std::set<int>, measured by traversing all N elements.",
+      "description_zh": "std::set<int> 的单元素遍历开销，通过遍历全部 N 个元素测量。"
+    }
+  },
+  "sources": [
+    {
+      "path": "set.cpp",
+      "input": {
+        "type": "generator",
+        "params": {
+          "lower_bound": 100,
+          "upper_bound": 1000000
+        }
+      },
+      "repeats": 20
+    }
+  ]
+}

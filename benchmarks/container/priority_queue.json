@@ -1,0 +1,35 @@
+{
+  "tests": {
+    "container.priority_queue.int_push": {
+      "type": "simple",
+      "complexity": "O(nlogn)",
+      "practical_lower_bound": 100,
+      "practical_upper_bound": 10000000,
+      "template": ["n", "micro_repeats", "time_clock", "time_tsc", "<perf>"],
+      "description_en": "Cost of one std::priority_queue<int>::push for int elements, measured over N push operations.",
+      "description_zh": "std::priority_queue<int>::push 压入 int 元素的单次开销，基于 N 次压入操作测量。"
+    },
+    "container.priority_queue.int_pop": {
+      "type": "simple",
+      "complexity": "O(nlogn)",
+      "practical_lower_bound": 100,
+      "practical_upper_bound": 10000000,
+      "template": ["n", "micro_repeats", "time_clock", "time_tsc", "<perf>"],
+      "description_en": "Cost of one std::priority_queue<int>::pop on a queue of size N, measured over N pop operations.",
+      "description_zh": "大小为 N 的 std::priority_queue<int> 上 std::priority_queue<int>::pop 的单次开销，基于 N 次弹出操作测量。"
+    }
+  },
+  "sources": [
+    {
+      "path": "priority_queue.cpp",
+      "input": {
+        "type": "generator",
+        "params": {
+          "lower_bound": 100,
+          "upper_bound": 10000000
+        }
+      },
+      "repeats": 20
+    }
+  ]
+}

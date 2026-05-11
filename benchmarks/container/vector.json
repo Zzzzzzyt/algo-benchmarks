@@ -1,0 +1,53 @@
+{
+  "tests": {
+    "container.vector.int_push_back": {
+      "type": "simple",
+      "complexity": "O(n)",
+      "practical_lower_bound": 100,
+      "practical_upper_bound": 10000000,
+      "template": ["n", "micro_repeats", "time_clock", "time_tsc", "<perf>"],
+      "description_en": "Cost of std::vector<int>::push_back for int elements, measured over N append operations.",
+      "description_zh": "std::vector<int>::push_back 追加 int 元素的开销，基于 N 次追加操作测量。"
+    },
+    "container.vector.int_push_back_reserved": {
+      "type": "simple",
+      "complexity": "O(n)",
+      "practical_lower_bound": 100,
+      "practical_upper_bound": 10000000,
+      "template": ["n", "micro_repeats", "time_clock", "time_tsc", "<perf>"],
+      "description_en": "Cost of std::vector<int>::push_back for int elements after reserve(N), measured over N append operations.",
+      "description_zh": "在 reserve(N) 之后，std::vector<int>::push_back 追加 int 元素的开销，基于 N 次追加操作测量。"
+    },
+    "container.vector.int_random_read": {
+      "type": "simple",
+      "complexity": "O(n)",
+      "practical_lower_bound": 100,
+      "practical_upper_bound": 10000000,
+      "template": ["n", "micro_repeats", "time_clock", "time_tsc", "<perf>"],
+      "description_en": "Cost of random indexed read from std::vector<int>, measured over N reads using a shuffled index order.",
+      "description_zh": "std::vector<int> 随机下标读取 int 元素的开销，基于按打乱顺序执行的 N 次读取测量。"
+    },
+    "container.vector.int_iteration": {
+      "type": "simple",
+      "complexity": "O(n)",
+      "practical_lower_bound": 100,
+      "practical_upper_bound": 10000000,
+      "template": ["n", "micro_repeats", "time_clock", "time_tsc", "<perf>"],
+      "description_en": "Per-element iteration cost for std::vector<int>, measured by traversing all N int elements.",
+      "description_zh": "std::vector<int> 的单元素遍历开销，通过遍历全部 N 个 int 元素测量。"
+    }
+  },
+  "sources": [
+    {
+      "path": "vector.cpp",
+      "input": {
+        "type": "generator",
+        "params": {
+          "lower_bound": 100,
+          "upper_bound": 100000000
+        }
+      },
+      "repeats": 20
+    }
+  ]
+}

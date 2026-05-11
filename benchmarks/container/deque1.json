@@ -1,0 +1,62 @@
+{
+  "tests": {
+    "container.deque.int_push_back_cold": {
+      "type": "simple",
+      "complexity": "O(n)",
+      "practical_lower_bound": 100,
+      "practical_upper_bound": 10000000,
+      "template": ["n", "micro_repeats", "time_clock", "time_tsc", "<perf>"],
+      "description_en": "Cost of std::deque<int>::push_back for int elements, measured over N append operations.",
+      "description_zh": "std::deque<int>::push_back 追加 int 元素的开销，基于 N 次追加操作测量。"
+    },
+    "container.deque.int_push_back_hot": {
+      "type": "simple",
+      "complexity": "O(n)",
+      "practical_lower_bound": 100,
+      "practical_upper_bound": 10000000,
+      "template": ["n", "micro_repeats", "time_clock", "time_tsc", "<perf>"],
+      "description_en": "Cost of std::deque<int>::push_back for int elements, measured over N append operations.",
+      "description_zh": "std::deque<int>::push_back 追加 int 元素的开销，基于 N 次追加操作测量。"
+    },
+    "container.deque.int_pop_back": {
+      "type": "simple",
+      "complexity": "O(n)",
+      "practical_lower_bound": 100,
+      "practical_upper_bound": 10000000,
+      "template": ["n", "micro_repeats", "time_clock", "time_tsc", "<perf>"],
+      "description_en": "Cost of reading std::deque<int>::back() and calling std::deque<int>::pop_back for int elements, measured over N pop operations.",
+      "description_zh": "std::deque<int>::pop_back 弹出 int 元素并读取其值的开销，基于 N 次弹出操作测量。"
+    },
+    "container.deque.int_random_read": {
+      "type": "simple",
+      "complexity": "O(n)",
+      "practical_lower_bound": 100,
+      "practical_upper_bound": 10000000,
+      "template": ["n", "micro_repeats", "time_clock", "time_tsc", "<perf>"],
+      "description_en": "Cost of random indexed read from std::deque<int>, measured over N reads using a shuffled index order.",
+      "description_zh": "std::deque<int> 随机下标读取 int 元素的开销，基于按打乱顺序执行的 N 次读取测量。"
+    },
+    "container.deque.int_iteration": {
+      "type": "simple",
+      "complexity": "O(n)",
+      "practical_lower_bound": 100,
+      "practical_upper_bound": 10000000,
+      "template": ["n", "micro_repeats", "time_clock", "time_tsc", "<perf>"],
+      "description_en": "Per-element iteration cost for std::deque<int>, measured by traversing all N int elements.",
+      "description_zh": "std::deque<int> 的元素遍历开销，通过遍历全部 N 个 int 元素测量。"
+    }
+  },
+  "sources": [
+    {
+      "path": "deque1.cpp",
+      "input": {
+        "type": "generator",
+        "params": {
+          "lower_bound": 100,
+          "upper_bound": 10000000
+        }
+      },
+      "repeats": 20
+    }
+  ]
+}

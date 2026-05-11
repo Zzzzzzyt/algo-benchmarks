@@ -1,0 +1,44 @@
+{
+  "tests": {
+    "container.deque.int_push_front_cold": {
+      "type": "simple",
+      "complexity": "O(n)",
+      "practical_lower_bound": 100,
+      "practical_upper_bound": 10000000,
+      "template": ["n", "micro_repeats", "time_clock", "time_tsc", "<perf>"],
+      "description_en": "Cost of std::deque<int>::push_front for int elements, measured over N prepend operations.",
+      "description_zh": "std::deque<int>::push_front 前端插入 int 元素的开销，基于 N 次插入操作测量。"
+    },
+    "container.deque.int_push_front_hot": {
+      "type": "simple",
+      "complexity": "O(n)",
+      "practical_lower_bound": 100,
+      "practical_upper_bound": 10000000,
+      "template": ["n", "micro_repeats", "time_clock", "time_tsc", "<perf>"],
+      "description_en": "Cost of std::deque<int>::push_front for int elements, measured over N prepend operations.",
+      "description_zh": "std::deque<int>::push_front 前端插入 int 元素的开销，基于 N 次插入操作测量。"
+    },
+    "container.deque.int_pop_front": {
+      "type": "simple",
+      "complexity": "O(n)",
+      "practical_lower_bound": 100,
+      "practical_upper_bound": 10000000,
+      "template": ["n", "micro_repeats", "time_clock", "time_tsc", "<perf>"],
+      "description_en": "Cost of reading std::deque<int>::front() and calling std::deque<int>::pop_front for int elements, measured over N pop operations.",
+      "description_zh": "std::deque<int>::pop_front 弹出 int 元素并读取其值的开销，基于 N 次弹出操作测量。"
+    }
+  },
+  "sources": [
+    {
+      "path": "deque2.cpp",
+      "input": {
+        "type": "generator",
+        "params": {
+          "lower_bound": 100,
+          "upper_bound": 10000000
+        }
+      },
+      "repeats": 20
+    }
+  ]
+}

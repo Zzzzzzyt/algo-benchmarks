@@ -152,9 +152,6 @@ inline BENCHMARK_ALWAYS_INLINE void DoNotOptimize(Tp &&value) {
 // FIXME Add ClobberMemory() for non-gnu and non-msvc compilers, before C++11.
 #endif
 
-typedef unsigned long long ull;
-typedef long long ll;
-
 #ifndef BENCHMARK_N
 #define BENCHMARK_N 1024
 #endif
@@ -165,22 +162,20 @@ typedef long long ll;
 
 #define BENCHMARK_COMPILER_BARRIER asm volatile("" : : : "memory")
 
-#include <random>
+#include <linux/perf_event.h>
+#include <sys/ioctl.h>
+#include <sys/syscall.h>
 #include <time.h>
-std::minstd_rand rng(time(NULL));
+#include <unistd.h>
 
-inline BENCHMARK_ALWAYS_INLINE ll rng64() {
-    return rng() * 2147483647ll + rng();
-}
-
-inline BENCHMARK_ALWAYS_INLINE ull get_cpu_time() {
+inline BENCHMARK_ALWAYS_INLINE __u64 get_cpu_time() {
     BENCHMARK_COMPILER_BARRIER;
     timespec ts;
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts);
     return ts.tv_sec * 1000000000ull + ts.tv_nsec;
 }
 
-inline BENCHMARK_ALWAYS_INLINE ull get_monotonic_time() {
+inline BENCHMARK_ALWAYS_INLINE __u64 get_monotonic_time() {
     BENCHMARK_COMPILER_BARRIER;
     timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
@@ -189,7 +184,7 @@ inline BENCHMARK_ALWAYS_INLINE ull get_monotonic_time() {
 
 #include <x86intrin.h>
 
-inline BENCHMARK_ALWAYS_INLINE ull get_tsc() {
+inline BENCHMARK_ALWAYS_INLINE __u64 get_tsc() {
     BENCHMARK_COMPILER_BARRIER;
     unsigned int aux;
     return __rdtscp(&aux);
@@ -199,15 +194,9 @@ inline BENCHMARK_ALWAYS_INLINE ull get_tsc() {
 #define BENCHMARK_TSC_FREQ 3.0e9
 #endif
 
-inline double tsc_to_ns(ull tsc) {
+inline double tsc_to_ns(__u64 tsc) {
     return (double)tsc / (BENCHMARK_TSC_FREQ);
 }
-
-#include <asm/unistd.h>
-#include <linux/perf_event.h>
-#include <sys/ioctl.h>
-#include <sys/syscall.h>
-#include <unistd.h>
 
 struct measurement_counters_t {
     double cpu_cycles;
@@ -239,8 +228,8 @@ enum perf_counter_index_t {
 };
 
 struct measurement_handle_t {
-    ull system_time_clock;
-    ull tsc_time;
+    __u64 system_time_clock;
+    __u64 tsc_time;
     int fds[PERF_IDX_COUNT];
 };
 
@@ -366,14 +355,14 @@ inline BENCHMARK_ALWAYS_INLINE measurement_handle_t start_measurement() {
 }
 
 inline BENCHMARK_ALWAYS_INLINE void end_measurement(const measurement_handle_t &handle, const char *test_name, int micro_repeats) {
-    ull end_tsc = get_tsc();
-    ull end_system_time = get_monotonic_time();
+    __u64 end_tsc = get_tsc();
+    __u64 end_system_time = get_monotonic_time();
 
     for (int i = 0; i < PERF_IDX_COUNT; ++i) {
         ioctl(handle.fds[i], PERF_EVENT_IOC_DISABLE, 0);
     }
 
-    ull elapsed_clock_ns = end_system_time - handle.system_time_clock;
+    __u64 elapsed_clock_ns = end_system_time - handle.system_time_clock;
     double elapsed_tsc_ns = tsc_to_ns(end_tsc - handle.tsc_time);
 
     if (micro_repeats <= 0) {
@@ -384,7 +373,7 @@ inline BENCHMARK_ALWAYS_INLINE void end_measurement(const measurement_handle_t &
     std::printf(
         "%s:\t%llu %d %llu %.17g %.17g %.17g %.17g %.17g %.17g %.17g %.17g %.17g %.17g %.17g\n",
         test_name,
-        (ull)BENCHMARK_N,
+        (__u64)(BENCHMARK_N),
         micro_repeats,
         elapsed_clock_ns,
         elapsed_tsc_ns,
@@ -425,4 +414,22 @@ inline BENCHMARK_ALWAYS_INLINE void benchmark_init(int argc, char *argv[]) {
     CPU_SET(BENCHMARK_CPU_AFFINITY, &cpu_set);
     sched_setaffinity(0, sizeof(cpu_set), &cpu_set);
 #endif
+}
+
+#include <random>
+#include <algorithm>
+
+std::minstd_rand rng(time(NULL));
+
+inline BENCHMARK_ALWAYS_INLINE __u64 rng64() {
+    return rng() * 2147483647ll + rng();
+}
+
+std::vector<int> make_shuffled_ints(int n) {
+    std::vector<int> values(n);
+    for (int i = 0; i < n; ++i) {
+        values[i] = i;
+    }
+    std::shuffle(values.begin(), values.end(), rng);
+    return values;
 }

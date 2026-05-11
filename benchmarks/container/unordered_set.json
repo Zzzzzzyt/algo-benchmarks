@@ -1,0 +1,44 @@
+{
+  "tests": {
+    "container.unordered_set.int_insert": {
+      "type": "simple",
+      "complexity": "O(n)",
+      "practical_lower_bound": 100,
+      "practical_upper_bound": 2000000,
+      "template": ["n", "micro_repeats", "time_clock", "time_tsc", "<perf>"],
+      "description_en": "Average cost of one std::unordered_set<int>::insert with a unique int element, measured over N insert operations.",
+      "description_zh": "std::unordered_set<int>::insert 插入唯一 int 元素的平均单次开销，基于 N 次插入操作测量。"
+    },
+    "container.unordered_set.int_find_hit": {
+      "type": "simple",
+      "complexity": "O(n)",
+      "practical_lower_bound": 100,
+      "practical_upper_bound": 2000000,
+      "template": ["n", "micro_repeats", "time_clock", "time_tsc", "<perf>"],
+      "description_en": "Average cost of one successful std::unordered_set<int>::find on a container of size N, measured over N lookups.",
+      "description_zh": "大小为 N 的 std::unordered_set<int> 上单次成功 find 查询的平均开销，基于 N 次查找测量。"
+    },
+    "container.unordered_set.int_iteration": {
+      "type": "simple",
+      "complexity": "O(n)",
+      "practical_lower_bound": 100,
+      "practical_upper_bound": 2000000,
+      "template": ["n", "micro_repeats", "time_clock", "time_tsc", "<perf>"],
+      "description_en": "Per-element iteration cost for std::unordered_set<int>, measured by traversing all N elements.",
+      "description_zh": "std::unordered_set<int> 的单元素遍历开销，通过遍历全部 N 个元素测量。"
+    }
+  },
+  "sources": [
+    {
+      "path": "unordered_set.cpp",
+      "input": {
+        "type": "generator",
+        "params": {
+          "lower_bound": 100,
+          "upper_bound": 2000000
+        }
+      },
+      "repeats": 20
+    }
+  ]
+}
