@@ -405,11 +405,12 @@ def process_simple_test(testid, test):
     stats = []
     for n in sorted(organized_data.keys()):
         raw_data = organized_data[n]
+        complexity = complexity_fn(n)
 
         # Start with basic info
         stat_entry = {
             "n": n,
-            "complexity": complexity_fn(n),
+            "complexity": complexity,
         }
 
         # Process each metric
@@ -454,7 +455,7 @@ def process_simple_test(testid, test):
             if idx not in removed:
                 filtered_data.append(entry)
 
-        stat_entry["samples_mean"] = len(values)
+        stat_entry["samples"] = len(values)
 
         for metric in all_metrics:
             # Calculate statistics
@@ -474,8 +475,7 @@ def process_simple_test(testid, test):
             stat_entry[f"{metric}_max"] = max(v)
 
             # For timing data, also store complexity-normalized v
-            if metric == "time_clock":
-                complexity = complexity_fn(n)
+            if metric == "time":
                 stat_entry["constant_mean"] = mean / complexity
                 stat_entry["constant_stddev"] = stddev / complexity
                 stat_entry["constant_min"] = min(v) / complexity
