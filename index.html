@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -25,6 +25,11 @@
       integrity="sha256-cDGQ39yChhpN5vzgHbjIdGEtQ5kXE9tttCsI7VR9TuY="
       crossorigin="anonymous"
     />
+    <script
+      src="https://cdn.jsdelivr.net/npm/msgpack-lite@0.1.26/dist/msgpack.min.js"
+      integrity="sha256-xnDLLYKxKFwLEmQK1SkZ9I7IwmjdeURGtXUk/0WnTRo="
+      crossorigin="anonymous"
+    ></script>
     <style>
       .ui.container {
         padding: 2em;
@@ -142,23 +147,15 @@
           <div class="field axis-scale-group">
             <label>X Axis Scale</label>
             <div class="ui tiny buttons">
-              <button type="button" class="ui button axis-scale-button" data-axis="x" data-scale="linear">
-                Linear
-              </button>
-              <button type="button" class="ui button axis-scale-button active" data-axis="x" data-scale="log">
-                Log
-              </button>
+              <button type="button" class="ui button axis-scale-button" data-axis="x" data-scale="linear">Linear</button>
+              <button type="button" class="ui button axis-scale-button active" data-axis="x" data-scale="log">Log</button>
             </div>
           </div>
           <div class="field axis-scale-group">
             <label>Y Axis Scale</label>
             <div class="ui tiny buttons">
-              <button type="button" class="ui button axis-scale-button" data-axis="y" data-scale="linear">
-                Linear
-              </button>
-              <button type="button" class="ui button axis-scale-button active" data-axis="y" data-scale="log">
-                Log
-              </button>
+              <button type="button" class="ui button axis-scale-button" data-axis="y" data-scale="linear">Linear</button>
+              <button type="button" class="ui button axis-scale-button active" data-axis="y" data-scale="log">Log</button>
             </div>
           </div>
           <div class="ui toggle checkbox" style="margin-bottom: 1em">

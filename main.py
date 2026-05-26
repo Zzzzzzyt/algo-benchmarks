@@ -9,6 +9,8 @@ import shutil
 import random
 import hashlib
 import time
+import struct
+import msgpack
 
 
 def colorize(text, color):
@@ -241,6 +243,34 @@ def expand_test_template(template):
     return ret
 
 
+def compress_stats(stats: list[dict[str, float]]):
+    if len(stats) == 0:
+        return stats
+
+    keys: set[str] = set()
+    for stat in stats:
+        for k in stat.keys():
+            keys.add(k)
+
+    sorted_keys = list(sorted(keys))
+    key_to_index = {k: i for i, k in enumerate(sorted_keys)}
+
+    compressed_stats = []
+    for stat in stats:
+        compressed_stat = [float("nan")] * len(sorted_keys)
+        for k, v in stat.items():
+            compressed_stat[key_to_index[k]] = v
+        compressed_stats.extend(compressed_stat)
+
+    packed_data = bytearray(len(compressed_stats) * 4)
+    for i, v in enumerate(compressed_stats):
+        struct.pack_into("<f", packed_data, i * 4, v)
+    return {
+        "keys": sorted_keys,
+        "data": packed_data,
+    }
+
+
 def compile_source(source, profile, defs={}):
     global tsc_freq, process_priority, cpu_affinity
 
@@ -424,7 +454,7 @@ def process_simple_test(testid, test):
             if idx not in removed:
                 filtered_data.append(entry)
 
-        stat_entry["samples"] = len(values)
+        stat_entry["samples_mean"] = len(values)
 
         for metric in all_metrics:
             # Calculate statistics
@@ -455,7 +485,7 @@ def process_simple_test(testid, test):
 
     constant_max = max(map(lambda x: x["constant_mean"], stats))
     test["constant_max"] = constant_max
-    test["stats"] = stats
+    test["stats"] = compress_stats(stats)
     del test["data"]
     return test
 
@@ -634,7 +664,7 @@ def run(profile, source_path, output_file):
 
     old_results = {}
     if (not rerun) and os.path.exists(output_file):
-        old_results_file = json.load(open(output_file, "r", encoding="utf-8"))
+        old_results_file: dict = msgpack.load(open(output_file, "rb"))  # type: ignore
         old_profile_hash = hash_obj(old_results_file.get("profile", {}))
         current_profile_hash = hash_obj(profile)
         if old_profile_hash == current_profile_hash:
@@ -684,11 +714,7 @@ def run(profile, source_path, output_file):
     if comment_file and os.path.exists(comment_file):
         output["comment"] = open(comment_file, "r", encoding="utf-8").read().replace("\r\n", "\n")
 
-    json.dump(
-        output,
-        open(output_file, "w", encoding="utf-8"),
-        separators=(",", ":"),
-    )
+    msgpack.dump(output, open(output_file, "wb"), use_bin_type=True, strict_types=True)
 
 
 def main():
@@ -724,7 +750,7 @@ def main():
         default=False,
     )
     parser.add_argument(
-        "-P",
+        "-pp",
         "--realtime-priority",
         action="store_true",
         help="Run benchmarks with realtime priority (may require root)",
@@ -781,7 +807,7 @@ def main():
             results_index = []
 
         for profile_name, profile in profiles.items():
-            output_file = os.path.join(args.output, f"{args.device}_{profile_name.replace(' ', '_')}.json")
+            output_file = os.path.join(args.output, f"{args.device}_{profile_name.replace(' ', '_')}.msgpack")
             print()
             run(profile, "benchmarks", output_file)
             results_index = [entry for entry in results_index if entry["path"] != output_file]
@@ -790,7 +816,7 @@ def main():
             json.dump(results_index, open(args.results_index, "w"))
     else:
         if not args.output:
-            args.output = "results.json"
+            args.output = "results.msgpack"
         if args.profile:
             if args.profile not in profiles:
                 print(colorize(f"Profile '{args.profile}' not found in profiles.json.", "red"))
@@ -799,7 +825,14 @@ def main():
                 exit(1)
             profile = profiles[args.profile]
         else:
-            profile = next(iter(profiles.values()))
+            print(colorize("No profile specified. Please choose from the following profiles:", "yellow"))
+            for k, v in profiles.items():
+                print(colorize(f"  {k}: {v['name']}", "yellow"))
+            selected_profile = input("Enter profile name: ").strip()
+            if selected_profile not in profiles:
+                print(colorize(f"Profile '{selected_profile}' not found in profiles.json.", "red"))
+                exit(1)
+            profile = profiles[selected_profile]
         run(profile, args.source, args.output)
 
 

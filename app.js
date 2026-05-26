@@ -1,9 +1,11 @@
 let results_index = [];
 
-fetch("results.json")
+const msgpack = window.msgpack;
+
+fetch("results.msgpack")
   .then((r) => {
     if (r.ok) {
-      results_index.push({ path: "results.json", name: "Default Results" });
+      results_index.push({ path: "results.msgpack", name: "Default Results" });
     }
   })
   .then(() => {
@@ -66,8 +68,9 @@ function getSelectedEntries() {
 
 function loadProfile(path, name) {
   fetch(path)
-    .then((r) => r.json())
-    .then((data) => {
+    .then((r) => r.arrayBuffer())
+    .then((raw) => {
+      const data = msgpack.decode(new Uint8Array(raw));
       window._resultsData = data.results;
 
       buildTree(data.results);
@@ -190,43 +193,6 @@ function buildTree(results) {
   });
 }
 
-function getMetricAccessors(metric) {
-  if (metric === "time_clock") {
-    return {
-      meanKeys: ["time_clock_mean", "mean"],
-      stdKeys: ["time_clock_stddev", "stddev"],
-      minKeys: ["time_clock_min", "min"],
-      maxKeys: ["time_clock_max", "max"],
-    };
-  }
-  if (metric === "constant") {
-    return {
-      meanKeys: ["constant_mean", "mean_c"],
-      stdKeys: ["constant_stddev", "stddev_c"],
-      minKeys: ["constant_min", "min_c"],
-      maxKeys: ["constant_max", "max_c"],
-    };
-  }
-  return {
-    meanKeys: [`${metric}_mean`, metric],
-    stdKeys: [`${metric}_stddev`],
-    minKeys: [`${metric}_min`],
-    maxKeys: [`${metric}_max`],
-  };
-}
-
-function getFirstFiniteValue(obj, keys) {
-  for (const key of keys) {
-    if (obj[key] !== undefined && obj[key] !== null) {
-      const num = Number(obj[key]);
-      if (Number.isFinite(num)) {
-        return num;
-      }
-    }
-  }
-  return undefined;
-}
-
 function getDefaultAxisTypes(metric, resultsArr) {
   let xType = "log";
   let yType = "log";
@@ -313,17 +279,30 @@ function showOverlayPlot(resultsArr, keysArr) {
     const ys = [];
     const errors = [];
     const errors2 = [];
-    const access = getMetricAccessors(metric);
 
-    result.stats.forEach((d) => {
-      const n = Number(d.n);
-      const meanVal = getFirstFiniteValue(d, access.meanKeys);
+    const data = new DataView(result.stats.data.buffer);
+    const data_keys = result.stats.keys;
+    const entryCount = data.byteLength / (data_keys.length * 4);
+    const keyIndexN = data_keys.indexOf("n");
+    const keyIndexMean = data_keys.indexOf(`${metric}_mean`);
+    const keyIndexStddev = data_keys.indexOf(`${metric}_stddev`);
+    const keyIndexMin = data_keys.indexOf(`${metric}_min`);
+    const keyIndexMax = data_keys.indexOf(`${metric}_max`);
+
+    function getValue(entryIdx, keyIdx) {
+      return data.getFloat32((entryIdx * data_keys.length + keyIdx) * 4, true);
+    }
+
+    for (let i = 0; i < entryCount; i++) {
+      const n = getValue(i, keyIndexN);
+      console.log(n);
+      const meanVal = getValue(i, keyIndexMean);
       if (!Number.isFinite(meanVal)) {
         return;
       }
-      const stdVal = getFirstFiniteValue(d, access.stdKeys);
-      const minVal = getFirstFiniteValue(d, access.minKeys);
-      const maxVal = getFirstFiniteValue(d, access.maxKeys);
+      const stdVal = getValue(i, keyIndexStddev);
+      const minVal = getValue(i, keyIndexMin);
+      const maxVal = getValue(i, keyIndexMax);
 
       xs.push(n);
       ys.push(meanVal);
@@ -344,7 +323,7 @@ function showOverlayPlot(resultsArr, keysArr) {
       } else {
         errors.push(0);
       }
-    });
+    }
 
     if (xs.length === 0) {
       return;
@@ -399,7 +378,7 @@ function refresh() {
     const selectedEntries = getSelectedEntries();
     showOverlayPlot(
       selectedEntries.map((entry) => entry.result),
-      selectedEntries.map((entry) => entry.key)
+      selectedEntries.map((entry) => entry.key),
     );
   }
 }
